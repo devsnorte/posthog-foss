@@ -98,7 +98,7 @@ class TestPreflight(APIBaseTest, QueryMatchingTest):
             "db": True,
             "initiated": True,
             "cloud": False,
-            **({} if settings.EE_AVAILABLE else {"foss_multi_project": True}),
+            **({"foss_multi_project": True} if not settings.EE_AVAILABLE and not options.get("cloud") else {}),
             "is_test": True,
             "data_warehouse_integrations": {"hubspot": {"client_id": ""}, "salesforce": {"client_id": ""}},
             "demo": False,
@@ -145,7 +145,9 @@ class TestPreflight(APIBaseTest, QueryMatchingTest):
 
         return self.preflight_dict(preflight)
 
-    @override_settings(CLOUD_DEPLOYMENT=None, EE_AVAILABLE=False, DEBUG=False, MULTI_ORG_ENABLED=False)
+    @override_settings(
+        CLOUD_DEPLOYMENT=None, EE_AVAILABLE=False, DEBUG=False, E2E_TESTING=False, MULTI_ORG_ENABLED=False
+    )
     def test_foss_projects_can_be_created_in_an_existing_single_organization(self) -> None:
         response = self.client.get("/_preflight/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
