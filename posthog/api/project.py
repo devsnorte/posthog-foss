@@ -78,7 +78,7 @@ from posthog.api.team.viewsets import EventIngestionRestrictionSerializer, team_
 from posthog.api.utils import validate_authorized_url_wildcards
 from posthog.auth import SessionAuthentication
 from posthog.caching.organization_serializer_cache import _bump_org_serializer_cache_version
-from posthog.cloud_utils import get_cached_instance_license, is_cloud
+from posthog.cloud_utils import get_cached_instance_license, is_cloud, is_foss_self_hosted
 from posthog.constants import AvailableFeature
 from posthog.decorators import disallow_if_impersonated
 from posthog.event_usage import report_user_action
@@ -2454,6 +2454,8 @@ class PremiumMultiProjectPermission(BasePermission):
             # If we're requesting to make a demo project but the org already has a demo project
             if organization.teams.filter(is_demo=True).exists():
                 return False
+        elif is_foss_self_hosted():
+            return True
 
         current_non_demo_project_count = organization.teams.exclude(is_demo=True).distinct("project_id").count()
         projects_feature = organization.get_available_feature(AvailableFeature.ORGANIZATIONS_PROJECTS)

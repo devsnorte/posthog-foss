@@ -4795,6 +4795,7 @@ export interface PreflightStatus {
     initiated: boolean
     /** Org creation is allowed on Cloud OR initiated self-hosted organizations with a license and MULTI_ORG_ENABLED. */
     can_create_org: boolean
+    foss_multi_project?: boolean
     /** Whether this is PostHog Cloud. */
     cloud: boolean
     /** Whether this is a managed demo environment. */

@@ -163,7 +163,7 @@ export function NewAccountMenu({
                             >
                                 <Label intent="menu" className="pl-2 relative">
                                     Project
-                                    {preflight?.can_create_org && (
+                                    {(preflight?.foss_multi_project || preflight?.can_create_org) && (
                                         <ButtonPrimitive
                                             iconOnly
                                             tooltip="Create a new project"

@@ -172,7 +172,7 @@ export function ProjectCombobox(): JSX.Element | null {
                 )}
 
                 <MenuSeparator />
-                {preflight?.can_create_org && (
+                {(preflight?.foss_multi_project || preflight?.can_create_org) && (
                     <Combobox.Item
                         asChild
                         onClick={() => {
