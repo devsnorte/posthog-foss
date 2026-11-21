@@ -224,6 +224,7 @@ def preflight_check(request: HttpRequest) -> JsonResponse:
 
     response = {
         "django": True,
+        "ee_available": settings.EE_AVAILABLE,
         "redis": in_cloud or _traced("preflight.is_redis_alive", is_redis_alive) or settings.TEST,
         "plugins": in_cloud or _traced("preflight.is_plugin_server_alive", is_plugin_server_alive) or settings.TEST,
         "celery": in_cloud or _traced("preflight.is_celery_alive", is_celery_alive) or settings.TEST,

@@ -92,6 +92,7 @@ class TestPreflight(APIBaseTest, QueryMatchingTest):
             options = {}
         return {
             "django": True,
+            "ee_available": settings.EE_AVAILABLE,
             "redis": True,
             "plugins": True,
             "celery": True,

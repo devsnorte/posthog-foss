@@ -7,6 +7,7 @@ import api from 'lib/api'
 import { dayjs } from 'lib/dayjs'
 import { lemonToast } from 'lib/lemon-ui/LemonToast'
 import { featureFlagLogic } from 'lib/logic/featureFlagLogic'
+import { preflightLogic } from 'lib/logic/preflightLogic'
 import { organizationLogic } from 'scenes/organizationLogic'
 import { sceneLogic } from 'scenes/sceneLogic'
 import { teamLogic } from 'scenes/teamLogic'
@@ -23,7 +24,7 @@ import { taskEventsLogic } from 'products/posthog_ai/frontend/logics/taskEventsL
 import { tasksLogic } from 'products/posthog_ai/frontend/logics/tasksLogic'
 
 import type { FeatureFlagsSet } from '../../lib/logic/featureFlagLogic'
-import type { OrganizationType } from '../../types'
+import type { OrganizationType, PreflightStatus } from '../../types'
 import type { SceneConfig } from '../sceneTypes'
 import { TOOL_DEFINITIONS, ToolRegistration } from './max-constants'
 import { maxLogic, mergeConversationHistory, mergeConversations, sidePanelMaxLogic } from './maxLogic'
@@ -94,6 +95,7 @@ export interface maxGlobalLogicValues {
     registeredToolMap: Record<string, ToolRegistration> // aiShellLogic
     featureFlags: FeatureFlagsSet // featureFlagLogic
     currentOrganization: OrganizationType | null // organizationLogic
+    preflight: PreflightStatus | null // preflightLogic
     sceneConfig: SceneConfig | null // sceneLogic
     sceneId: string | null // sceneLogic
     selectedTab: SidePanelTab | null // sidePanelStateLogic
@@ -261,6 +263,8 @@ export const maxGlobalLogic = kea<maxGlobalLogicType>([
         values: [
             aiShellLogic,
             ['effectivePhaiView', 'isMaxAvailable', 'isPhaiSandboxFlagOn', 'phaiViewMode', 'registeredToolMap'],
+            preflightLogic,
+            ['preflight'],
             organizationLogic,
             ['currentOrganization'],
             sceneLogic,
@@ -310,6 +314,9 @@ export const maxGlobalLogic = kea<maxGlobalLogicType>([
                         doNotUpdateCurrentThread?: boolean
                     }
                 ) => {
+                    if (values.preflight?.ee_available === false) {
+                        return []
+                    }
                     const response = await api.conversations.list()
                     return response.results.map((conversation) =>
                         mergeConversations(
