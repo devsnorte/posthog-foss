@@ -1,7 +1,7 @@
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from django.conf import settings
 from django.core.cache import cache
@@ -17,9 +17,11 @@ from posthog.models import Organization, Team
 
 from products.signals.backend.trial.limits import STANDARD_TRIAL_LIMITS, TrialLimits
 
-from ee.billing.billing_manager import BillingManager
-from ee.billing.billing_types import CustomerInfo, CustomerProduct
-from ee.billing.quota_limiting import QuotaLimitingCaches, is_team_limited, self_driving_quota_resource
+if TYPE_CHECKING or settings.EE_AVAILABLE:
+    from ee.billing.billing_manager import BillingManager
+    from ee.billing.billing_types import CustomerInfo, CustomerProduct
+    from ee.billing.quota_limiting import QuotaLimitingCaches, is_team_limited, self_driving_quota_resource
+
 
 logger = structlog.get_logger(__name__)
 
@@ -77,7 +79,7 @@ class TrialBilling:
             return None
 
     def status(self) -> TrialBillingStatus:
-        if self.organization.is_active is not True:
+        if not settings.EE_AVAILABLE or self.organization.is_active is not True:
             return TrialBillingStatus(ready=False, continuation=TrialContinuation.UNAVAILABLE)
         customer = cast(
             CustomerInfo,
@@ -130,6 +132,8 @@ class TrialBilling:
 
 
 def trial_billing_status(team: Team, *, use_cache: bool = False) -> TrialBillingStatus:
+    if not settings.EE_AVAILABLE:
+        return TrialBillingStatus(ready=False, continuation=TrialContinuation.UNAVAILABLE)
     # A DEBUG stack has no billing service, so treat the organization as a fresh unpaid customer.
     if settings.DEBUG:
         return TrialBillingStatus(ready=True, continuation=TrialContinuation.PAYMENT)
