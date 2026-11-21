@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.uuidt
+from posthog.foss_access import access_schema_dependency
 
 MODELS_TO_MOVE = ("scimprovisioneduser", "scimrequestlog")
 
@@ -74,7 +75,7 @@ def reverse_content_types(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("posthog", "1406_file_system_team_text_trgm_index"),
-        ("ee", "0064_split_identity_provider_config_scopes"),
+        access_schema_dependency("0064_split_identity_provider_config_scopes"),
     ]
 
     operations = [
@@ -226,3 +227,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(update_content_types, reverse_content_types),
     ]
+
+    # The FOSS database creates these tables here. Enterprise already created them under the old app label.
+    if not settings.EE_AVAILABLE:
+        operations = [*operations[0].state_operations, *operations[1:]]

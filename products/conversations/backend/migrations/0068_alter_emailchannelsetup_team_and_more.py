@@ -4,11 +4,13 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
+from posthog.foss_access import access_schema_dependency
+
 
 class Migration(migrations.Migration):
     dependencies = [
         ("conversations", "0067_conversationinboundevent"),
-        ("ee", "0063_scim_provisioned_user_config_set_null"),
+        access_schema_dependency("0063_scim_provisioned_user_config_set_null"),
         ("posthog", "1349_delete_persistedfolder_from_state"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

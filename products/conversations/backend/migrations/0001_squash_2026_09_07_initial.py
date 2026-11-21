@@ -10,6 +10,7 @@ from django.db import migrations, models
 import posthog.utils
 import posthog.uuidt
 import posthog.helpers.encrypted_fields
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -80,7 +81,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("ee", "0059_scimprovisioneduser_unique_config"),
+        access_schema_dependency("0059_scimprovisioneduser_unique_config"),
         ("posthog", "1340_drop_userproductlist_reason_columns"),
     ]
 
