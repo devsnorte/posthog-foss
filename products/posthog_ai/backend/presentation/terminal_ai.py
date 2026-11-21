@@ -11,6 +11,8 @@ import httpx
 import structlog
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
+from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
+from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
 from loginas.utils import is_impersonated_session
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 from pydantic_core import PydanticSerializationError
@@ -21,6 +23,7 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.viewsets import GenericViewSet
+from starlette.concurrency import iterate_in_threadpool
 
 from posthog.api.routing import TeamAndOrgViewSetMixin
 from posthog.api.streaming import sse_streaming_response
@@ -31,10 +34,6 @@ from posthog.models.user import User
 from posthog.ph_client import feature_enabled_or_false
 from posthog.rate_limit import AIBurstRateThrottle, AISustainedRateThrottle
 from posthog.renderers import SafeJSONRenderer, ServerSentEventRenderer
-
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
-from ee.hogai.utils.asgi import SyncIterableToAsync
-from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
 
 logger = structlog.get_logger(__name__)
 
@@ -168,6 +167,6 @@ class TerminalAIViewSet(TeamAndOrgViewSetMixin, GenericViewSet):
             headers["X-PostHog-Privacy-Mode"] = "true"
         stream = _stream_generation(f"{gateway.url.rstrip('/')}/messages", headers, body)
         return sse_streaming_response(
-            SyncIterableToAsync(stream) if settings.SERVER_GATEWAY_INTERFACE == "ASGI" else stream,
+            iterate_in_threadpool(stream) if settings.SERVER_GATEWAY_INTERFACE == "ASGI" else stream,
             endpoint="terminal_ai",
         )

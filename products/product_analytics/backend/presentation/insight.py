@@ -227,7 +227,7 @@ from products.product_analytics.backend.presentation.insight_metadata import (
 from products.product_analytics.backend.presentation.insight_permissions import CanEditInsightDashboards
 from products.product_analytics.backend.presentation.insight_write_validation import validate_insight_write
 from products.product_analytics.backend.presentation.query_concurrency import query_concurrency_slots
-from products.subscriptions.backend.facade.api import delete_insight_subscriptions
+from products.subscriptions.backend.facade.resource_subscriptions import delete_insight_subscriptions
 
 from common.hogvm.python.utils import HogVMException
 

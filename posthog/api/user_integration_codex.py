@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from rest_framework import exceptions, serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,11 +17,12 @@ from posthog.models.integration.codex import (
 from posthog.models.user import User
 from posthog.oauth_provenance import is_sandbox_oauth_request
 
-from products.tasks.backend.facade.access import (
-    DesktopAccessResolutionError,
-    get_desktop_access_decision,
-    get_posthog_ai_access_decision,
-)
+if settings.EE_AVAILABLE:
+    from products.tasks.backend.facade.access import (
+        DesktopAccessResolutionError,
+        get_desktop_access_decision,
+        get_posthog_ai_access_decision,
+    )
 
 
 class UserCodexAuthTokensSerializer(serializers.Serializer):
@@ -97,6 +100,8 @@ def ensure_codex_connect_enabled(user: User) -> None:
     organization = user.current_organization
     if organization is None:
         raise exceptions.NotFound()
+    if not settings.EE_AVAILABLE:
+        raise DesktopAccessUnavailable()
     if get_posthog_ai_access_decision(user, organization).allowed:
         return
     try:

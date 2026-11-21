@@ -25,7 +25,7 @@ from products.access_control.backend.facade.user_access_control import UserAcces
 from products.notebooks.backend.facade.content import extract_inline_query_nodes, extract_referenced_insight_short_ids
 from products.notebooks.backend.models import Notebook
 from products.product_analytics.backend.facade.models import Insight
-from products.subscriptions.backend.facade.api import (
+from products.subscriptions.backend.facade.resource_subscriptions import (
     dashboard_has_active_full_subscription,
     insight_has_active_subscription,
 )

@@ -1079,7 +1079,7 @@ class TestEligibleTeams(BaseTest):
         )
         limited = [teams["second"].api_token] if second_limited else []
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=limited):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=limited):
             eligible = {team.id for team in eligible_teams(config)}
 
         assert eligible == {teams[name].id for name in expected}
@@ -1130,7 +1130,7 @@ class TestEligibleTeams(BaseTest):
         elif source is not None:
             _enable_analytics_source(self.team, enabled=source == "analytics")
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             eligible = {team.id for team in eligible_teams(config)}
 
         assert covers_team(config, Team.objects.get(id=self.team.id)) is enrolled
@@ -1142,7 +1142,7 @@ class TestEligibleTeams(BaseTest):
         SignalTeamConfig.objects.create(team=self.team, anomaly_scoring_enabled=False)
         config = AnomalyScoringConfig(enabled=True, self_driving_organization_percentage=100.0)
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             assert self.team.id not in {team.id for team in eligible_teams(config)}
 
 
@@ -1297,7 +1297,7 @@ class TestDueList(ClickhouseTestMixin, BaseTest):
         )
 
         with (
-            patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]),
+            patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]),
             patch("products.signals.backend.anomaly_scores.queue.scored_buckets", side_effect=AssertionError),
         ):
             selection = select_insights(self._config(), SelectionConfig(weighting=Weighting.UNIFORM), NOW, limit=10)
@@ -1396,7 +1396,7 @@ class TestDueList(ClickhouseTestMixin, BaseTest):
         )
 
         with (
-            patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]),
+            patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]),
             patch("products.signals.backend.anomaly_scores.queue._MAX_NEVER_SCORED_DUE_ROWS", 1),
         ):
             selection = select_insights(config, SelectionConfig(weighting=Weighting.UNIFORM), NOW)
@@ -1472,7 +1472,7 @@ class TestDueList(ClickhouseTestMixin, BaseTest):
         )
         config = dataclasses.replace(self._config(), max_insights_per_tick=1, shards=shards)
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             selection = select_insights(config, SelectionConfig(weighting=Weighting.UNIFORM), NOW)
 
         assert len(selection.picks) == picked
@@ -1526,7 +1526,7 @@ class TestDueList(ClickhouseTestMixin, BaseTest):
         insight = Insight.objects.create(team=self.team, name="never scored", query=_trends(interval="day"))
         self._row(insight, next_due_at, {})
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             refresh_team(self._config(), self.team, NOW)
 
         row = AnomalyScoringDueInsight.all_teams.get(team_id=self.team.id, insight_id=insight.id)
@@ -1550,7 +1550,7 @@ class TestDueList(ClickhouseTestMixin, BaseTest):
         config = self._config(self.team.id, other_team.id)
 
         refreshes = []
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             for later in (NOW, NOW + timedelta(minutes=15), NOW + timedelta(minutes=30)):
                 refresh = refresh_due_list(config, later, deadline=0.0)
                 refreshes.append((refresh.teams_refreshed, refresh.teams_waiting))
@@ -1678,7 +1678,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
             enabled=True, organization_ids=(str(self.organization.id),), allow_team_ids=(self.team.id,)
         )
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             selection = select_insights(config, SelectionConfig(weighting=Weighting.UNIFORM), NOW, limit=10)
 
         picks = {pick.insight_id: pick for pick in selection.picks}
@@ -1717,7 +1717,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
             allow_team_ids=(self.team.id, small_team.id),
         )
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             selection = select_insights(config, SelectionConfig(weighting=Weighting.WEIGHTED), NOW, limit=2)
 
         picks = {pick.team_id: pick for pick in selection.picks}
@@ -1760,7 +1760,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
             return scored_buckets(team, *args)
 
         with (
-            patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]),
+            patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]),
             patch("products.signals.backend.anomaly_scores.queue.scored_buckets", side_effect=buckets),
         ):
             selection = select_insights(config, SelectionConfig(weighting=Weighting.UNIFORM), NOW, limit=10)
@@ -1797,7 +1797,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
         )
 
         with (
-            patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]),
+            patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]),
             patch("products.signals.backend.anomaly_scores.spend.read_spend", return_value=spend),
         ):
             selection = select_insights(config, SelectionConfig(weighting=Weighting.UNIFORM), NOW, limit=10)
@@ -1827,7 +1827,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
         )
 
         picked: list[list[int]] = []
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             for later in (NOW, NOW + timedelta(minutes=5)):
                 cache.delete_many(
                     [_fleet_budget_key(later), *(_project_budget_key(team_id, later) for team_id in insights)]
@@ -1892,7 +1892,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
             cache.delete_many([_fleet_budget_key(NOW, kind), _project_budget_key(self.team.id, NOW, kind)])
         cache.set(_fleet_budget_key(NOW, ScoringRun.TRAIN), config.max_queries_per_hour)
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             selection = select_insights(config, SelectionConfig(), NOW)
 
         names = {insight.id: name for name, insight in insights.items()}
@@ -1954,7 +1954,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
         if score_budget_spent:
             cache.set(_fleet_budget_key(NOW, ScoringRun.SCORE), config.max_score_queries_per_hour)
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             selection = select_insights(config, SelectionConfig(), NOW)
 
         names = {insight.id: name for name, insight in insights.items()}
@@ -2039,7 +2039,7 @@ class TestScoredBuckets(ClickhouseTestMixin, BaseTest):
         if train_budget_spent:
             cache.set(_fleet_budget_key(NOW, ScoringRun.TRAIN), config.max_queries_per_hour)
 
-        with patch("products.signals.backend.anomaly_scores.queue.list_limited_team_attributes", return_value=[]):
+        with patch("ee.billing.quota_limiting.list_limited_team_attributes", return_value=[]):
             selection = select_insights(config, SelectionConfig(weighting=Weighting.UNIFORM), NOW)
 
         names = {

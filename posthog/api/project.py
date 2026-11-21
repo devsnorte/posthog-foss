@@ -1786,8 +1786,6 @@ class ProjectViewSet(
         return self.get_object().passthrough_team
 
     def perform_destroy(self, project: Project):
-        from ee.billing.billing_manager import BillingManager
-
         # Check if bulk deletion operations are disabled via environment variable
         # Projects contain teams, so we need to block project deletion too
         if settings.DISABLE_BULK_DELETES:
@@ -1803,13 +1801,13 @@ class ProjectViewSet(
         is_last_project = project.organization.projects.count() == 1
         license = get_cached_instance_license()
         try:
-            has_active_subscription = (
-                is_last_project
-                and settings.EE_AVAILABLE
-                and is_cloud()
-                and license
-                and BillingManager(license).get_billing(project.organization).get("has_active_subscription")
-            )
+            has_active_subscription = False
+            if is_last_project and settings.EE_AVAILABLE and is_cloud() and license:
+                from ee.billing.billing_manager import BillingManager
+
+                has_active_subscription = (
+                    BillingManager(license).get_billing(project.organization).get("has_active_subscription")
+                )
         except Exception:
             logger.exception("Failed to check billing status before project deletion; allowing deletion to proceed")
             has_active_subscription = False

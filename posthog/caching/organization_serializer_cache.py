@@ -11,6 +11,7 @@ no longer triggers at setup.
 from collections.abc import Callable
 from typing import Any
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Model
 from django.db.models.signals import post_delete, post_save
@@ -22,8 +23,6 @@ from posthog.models.team import Team
 
 from products.access_control.backend.models.access_control import AccessControl
 from products.access_control.backend.models.role import RoleMembership
-
-from ee.models.explicit_team_membership import ExplicitTeamMembership
 
 ORG_SERIALIZER_CACHE_TTL_SECONDS = 60 * 60
 ORG_SERIALIZER_VERSION_TTL_SECONDS = 7 * 24 * 60 * 60
@@ -78,7 +77,6 @@ _INVALIDATION_SOURCES: list[tuple[type[Model], Callable[[Any], str | None]]] = [
     (Project, _instance_org_id),
     (OrganizationMembership, _instance_org_id),
     (AccessControl, _access_control_to_org_id),
-    (ExplicitTeamMembership, _team_id_to_org_id),
     (RoleMembership, _role_id_to_org_id),
 ]
 
@@ -94,6 +92,11 @@ def _connect_invalidation(model: type[Model], get_org_id: Callable[[Any], str | 
     post_save.connect(receiver_fn, sender=model, weak=False)
     post_delete.connect(receiver_fn, sender=model, weak=False)
 
+
+if settings.EE_AVAILABLE:
+    from ee.models.explicit_team_membership import ExplicitTeamMembership
+
+    _connect_invalidation(ExplicitTeamMembership, _team_id_to_org_id)
 
 for _model, _resolver in _INVALIDATION_SOURCES:
     _connect_invalidation(_model, _resolver)

@@ -34,7 +34,7 @@ from products.replay_vision.backend.facade.workflow_scan_limits import (
     WORKFLOW_SCAN_RATE_CAP_PER_DAY,
     WORKFLOW_SCAN_TEAM_RATE_CAP_PER_DAY,
 )
-from products.tasks.backend.facade.workflow_tasks import (
+from products.tasks.backend.facade.workflow_task_limits import (
     MAX_SELF_SERVE_WORKFLOW_TASK_RATE_CAP_PER_DAY,
     MAX_SELF_SERVE_WORKFLOW_TASK_TEAM_RATE_CAP_PER_DAY,
     WORKFLOW_TASK_RATE_CAP_PER_DAY,

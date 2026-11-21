@@ -5,17 +5,12 @@ from posthog.models.scoping import team_scope
 from posthog.scoping_audit import skip_team_scope_audit
 from posthog.tasks.utils import CeleryQueue
 
-from products.workflows.backend.services.data_suggestions.service import (
-    build_caller,
-    run_build,
-    run_data_suggestions,
-    run_event_workflows,
-)
-
 
 @shared_task(ignore_result=True, queue=CeleryQueue.LONG_RUNNING.value)
 @skip_team_scope_audit
 def generate_data_suggestions(team_id: int, user_id: int, lock_token: str) -> None:
+    from products.workflows.backend.services.data_suggestions.service import run_data_suggestions  # noqa: PLC0415
+
     run_data_suggestions(team_id=team_id, user_id=user_id, lock_token=lock_token)
 
 
@@ -29,6 +24,7 @@ def build_data_suggestion(
         save_draft,
         validated_draft,
     )
+    from products.workflows.backend.services.data_suggestions.service import build_caller, run_build  # noqa: PLC0415
 
     # A saved draft is checked with the editor's draft rules, so blank settings stay blank for the caller to fill.
     rules = EventSource.WEB if save else EventSource(event_source)
@@ -53,6 +49,7 @@ def build_event_workflows(team_id: int, user_id: int, events: list[str], lock_to
         save_draft,
         validated_draft,
     )
+    from products.workflows.backend.services.data_suggestions.service import run_event_workflows  # noqa: PLC0415
 
     # The drafts are saved for the team to finish in the editor, so they are checked with the editor's draft rules.
     with team_scope(team_id):
