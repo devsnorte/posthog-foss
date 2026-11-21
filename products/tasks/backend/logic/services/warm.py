@@ -18,6 +18,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -46,7 +47,8 @@ from products.tasks.backend.temporal.client import execute_task_processing_workf
 from products.tasks.backend.temporal.oauth import dispatched_run_scopes
 from products.tasks.backend.temporal.process_task.utils import parse_run_state
 
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
 
 if TYPE_CHECKING:
     from posthog.temporal.oauth import PosthogMcpScopes
@@ -102,6 +104,8 @@ def _session_bucket(origin_product: str, signal_report_id: UUID | str | None) ->
 
 
 def _ai_credits_checker(team: Team, user: User) -> None:
+    if not settings.EE_AVAILABLE:
+        raise PermissionDenied("This sandbox requires a hosted AI credits provider.")
     if is_team_limited(team.api_token, QuotaResource.AI_CREDITS, QuotaLimitingCaches.QUOTA_LIMITER_CACHE_KEY):
         raise QuotaLimitExceeded(
             "Your organization reached its AI credit usage limit. Increase the limits in Billing settings, "

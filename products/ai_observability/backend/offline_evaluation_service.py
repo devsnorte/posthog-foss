@@ -10,10 +10,12 @@ from itertools import batched
 from typing import TYPE_CHECKING, Literal, NoReturn, cast
 from uuid import UUID
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.utils import timezone
 
+from posthog.cloud_utils import is_foss_self_hosted
 from posthog.dataclasses import frozen
 from posthog.exceptions import QuotaLimitExceeded
 from posthog.models.team import Team
@@ -42,7 +44,8 @@ from products.ai_observability.backend.offline_evaluation_types import (
 )
 from products.ai_observability.backend.score_validation import validate_score_value
 
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -605,7 +608,9 @@ class OfflineEvaluationIngestionService(_OfflineEvaluationService):
         new_item_submissions = [item for item in submission.items if item.id not in items]
         if (new_item_submissions or new_results) and experiment.status != OfflineExperiment.Status.UPLOADING:
             raise OfflineEvaluationConflict("experiment_closed", "This experiment is closed to new items and results.")
-        if any(not result.calculate for _, result in new_results):
+        if any(not result.calculate for _, result in new_results) and not is_foss_self_hosted():
+            if not settings.EE_AVAILABLE:
+                raise QuotaLimitExceeded("The hosted event quota is unavailable.")
             api_token = Team.objects.values_list("api_token", flat=True).get(id=self.team_id)
             if is_team_limited(api_token, QuotaResource.LLM_EVENTS, QuotaLimitingCaches.QUOTA_LIMITER_CACHE_KEY):
                 raise QuotaLimitExceeded(

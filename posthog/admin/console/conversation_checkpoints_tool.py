@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse
@@ -15,7 +16,8 @@ from posthog.utils import pluralize
 
 from products.posthog_ai.backend.models.assistant import Conversation
 
-from ee.hogai.django_checkpoint.compaction import compact_conversation
+if settings.EE_AVAILABLE:
+    from ee.hogai.django_checkpoint.compaction import compact_conversation
 
 logger = structlog.get_logger(__name__)
 
@@ -137,7 +139,6 @@ def compact(request: HttpRequest, form: forms.Form | None) -> HttpResponse | Non
     return None
 
 
-@console.register_tool
 class ConversationCheckpointsTool(ConsoleTool):
     key = TOOL_KEY
     title = "AI conversation checkpoints"
@@ -174,8 +175,10 @@ class ConversationCheckpointsTool(ConsoleTool):
         ]
 
 
-console.register_moved_page(
-    old_path="admin/posthog_ai/conversation/<uuid:pk>/compact/",
-    title="Compacting a conversation",
-    url="/admin/console/tools/ai-conversation-checkpoints/compact/?conversation={pk}",
-)
+if settings.EE_AVAILABLE:
+    console.register_tool(ConversationCheckpointsTool)
+    console.register_moved_page(
+        old_path="admin/posthog_ai/conversation/<uuid:pk>/compact/",
+        title="Compacting a conversation",
+        url="/admin/console/tools/ai-conversation-checkpoints/compact/?conversation={pk}",
+    )

@@ -14,6 +14,8 @@ import uuid
 import typing
 import datetime as dt
 
+from django.conf import settings
+
 from posthog.models.team.team import Team
 
 from products.warehouse_sources.backend.models.external_data_job import ExternalDataJob
@@ -23,7 +25,8 @@ from products.warehouse_sources.backend.temporal.data_imports.cdc.broken import 
 from products.warehouse_sources.backend.temporal.data_imports.cdc.buffer import BUFFER_FILE_RETENTION
 from products.warehouse_sources.backend.temporal.data_imports.cdc.naming import CDC_EXTRACTION_WORKFLOW_ID_PREFIX
 
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
 
 if typing.TYPE_CHECKING:
     from products.warehouse_sources.backend.temporal.data_imports.cdc.adapters import CDCSourceAdapter
@@ -58,6 +61,8 @@ def blocked_past_buffer_retention(source: ExternalDataSource, now: dt.datetime) 
     The team must still be over the limit: once the limit lifts, the tables' next runs load what the
     buffer still holds.
     """
+    if not settings.EE_AVAILABLE:
+        return False
     cdc_schemas = ExternalDataSchema.objects.filter(
         team_id=source.team_id,
         source=source,
@@ -148,6 +153,8 @@ def clear_kept_slot_billing_expiry(source: ExternalDataSource) -> int:
     the user at a Repair CDC that would re-snapshot every table a second time. Returns how many schemas
     were cleared.
     """
+    if not settings.EE_AVAILABLE:
+        return 0
     marked = ExternalDataSchema.objects.filter(
         team_id=source.team_id,
         source=source,

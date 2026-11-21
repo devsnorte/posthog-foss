@@ -7,7 +7,9 @@ tach already allows products.growth to import ee.
 
 import abc
 import dataclasses
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+from django.conf import settings
 
 from posthog.dataclasses import frozen
 from posthog.exceptions_capture import capture_exception
@@ -15,7 +17,8 @@ from posthog.exceptions_capture import capture_exception
 from products.growth.backend.enrichment.fields import EnrichmentFields
 from products.growth.backend.enrichment.transform import transform_harmonic_company
 
-from ee.billing.salesforce_enrichment.harmonic_client import AsyncHarmonicClient
+if TYPE_CHECKING or settings.EE_AVAILABLE:
+    from ee.billing.salesforce_enrichment.harmonic_client import AsyncHarmonicClient
 
 
 @frozen
@@ -80,6 +83,8 @@ class HarmonicEnrichmentProvider(EnrichmentProvider):
     name = "harmonic"
 
     async def enrich_by_domain(self, domain: str) -> ProviderLookup:
+        if not settings.EE_AVAILABLE:
+            raise RuntimeError("The Harmonic enrichment client is unavailable on this installation")
         async with AsyncHarmonicClient(source="growth_enrichment_provider") as client:
             lookup = await client.enrich_company_by_domain_strict(domain)
             company = lookup.company
@@ -91,6 +96,8 @@ class HarmonicEnrichmentProvider(EnrichmentProvider):
     async def enrichment_statuses_for(self, urns: list[str]) -> dict[str, str]:
         if not urns:
             return {}
+        if not settings.EE_AVAILABLE:
+            raise RuntimeError("The Harmonic enrichment client is unavailable on this installation")
         async with AsyncHarmonicClient(source="growth_enrichment_provider") as client:
             statuses = await client.get_enrichment_status(urns)
         return {

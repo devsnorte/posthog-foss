@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from itertools import batched
 from uuid import UUID
 
+from django.conf import settings
 from django.db.models import Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -17,8 +18,9 @@ from products.signals.backend.rated_usage_models import SignalRatedUsage
 from products.signals.backend.trial.models import SignalTrialGrant
 from products.signals.backend.trial.rated_usage import FrozenGrantAllocation, report_trial_grant, snapshot_rated_usage
 
-from ee.billing.billing_manager import BillingManager
-from ee.billing.billing_types import RatedUsageItem
+if settings.EE_AVAILABLE:
+    from ee.billing.billing_manager import BillingManager
+    from ee.billing.billing_types import RatedUsageItem
 
 
 def _report_day(organization_id: UUID, day: date) -> None:
@@ -27,6 +29,8 @@ def _report_day(organization_id: UUID, day: date) -> None:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization is None:
         return
+    if not settings.EE_AVAILABLE:
+        raise RuntimeError("Rated usage reporting requires a billing service")
     snapshot_rated_usage(organization_id, day)
     # Snapshot the customer and amount before POST so retries survive project moves.
     deliveries = (

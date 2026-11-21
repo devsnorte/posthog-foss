@@ -2,6 +2,8 @@ import uuid
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal, TypeVar
 
+from django.conf import settings
+
 import structlog
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.runnables import RunnableConfig
@@ -10,8 +12,9 @@ from pydantic import BaseModel, ValidationError
 from posthog.exceptions_capture import capture_exception
 from posthog.models import Team, User
 
-from ee.hogai.llm import MaxCallbackHandler, MaxChatAnthropic
-from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
+if settings.EE_AVAILABLE:
+    from ee.hogai.llm import MaxCallbackHandler, MaxChatAnthropic
+from posthog.llm.privacy import is_privacy_mode_enabled
 
 logger = structlog.get_logger(__name__)
 
@@ -40,6 +43,8 @@ def invoke_structured(
     The generation goes to LLM analytics through `analytics_client`, failed calls included, so a bad rollout
     shows up there with the model's input and output.
     """
+    if not settings.EE_AVAILABLE:
+        return None
     properties = {"ai_product": "workflows", "ai_feature": feature, "team_id": team.id}
     callbacks: list[BaseCallbackHandler] = []
     if analytics_client is not None:

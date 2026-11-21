@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Annotated, Any, TypedDict
+from typing import Any, TypedDict
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -7,21 +7,13 @@ from pydantic import BaseModel, Field, model_validator
 from products.replay_vision.backend.models.replay_observation import ObservationTrigger
 from products.replay_vision.backend.models.replay_scanner import ScannerType
 from products.replay_vision.backend.session_limits import MAX_SESSION_ID_LENGTH
+from products.replay_vision.backend.temporal.scanners import AnyScannerOutput as AnyScannerOutput
 from products.replay_vision.backend.temporal.scanners.base import SignalFinding
 from products.replay_vision.backend.temporal.scanners.classifier import ClassifierOutput
-from products.replay_vision.backend.temporal.scanners.experiment import ExperimentOutput
-from products.replay_vision.backend.temporal.scanners.monitor import MonitorOutput
-from products.replay_vision.backend.temporal.scanners.scorer import ScorerOutput
-from products.replay_vision.backend.temporal.scanners.summarizer import SummarizerOutput
 from products.replay_vision.backend.temporal.snapshots import (
     BackfillScannerSnapshot as BackfillScannerSnapshot,
     ScannerSnapshot as ScannerSnapshot,
 )
-
-AnyScannerOutput = Annotated[
-    ClassifierOutput | ExperimentOutput | MonitorOutput | ScorerOutput | SummarizerOutput,
-    Field(discriminator="scanner_type"),
-]
 
 
 class EmittedSignal(BaseModel, frozen=True):

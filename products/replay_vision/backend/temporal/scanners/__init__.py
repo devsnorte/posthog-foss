@@ -16,7 +16,12 @@ from products.replay_vision.backend.temporal.scanners.summarizer import (
     SummarizerScanner,
     SummarizerSummaryResponse,
 )
-from products.replay_vision.backend.temporal.types import AnyScannerOutput, ScannerSnapshot
+from products.replay_vision.backend.temporal.snapshots import ScannerSnapshot
+
+AnyScannerOutput = Annotated[
+    ClassifierOutput | ExperimentOutput | MonitorOutput | ScorerOutput | SummarizerOutput,
+    Field(discriminator="scanner_type"),
+]
 
 AnyScanner = Annotated[
     ClassifierScanner | ExperimentScanner | MonitorScanner | ScorerScanner | SummarizerScanner,

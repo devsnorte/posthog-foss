@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from django.conf import settings
+
 import structlog
 from asgiref.sync import sync_to_async
 from temporalio import activity
@@ -8,7 +10,8 @@ from posthog.models import Team, User
 
 from products.posthog_ai.backend.conversation_mirror import MirrorResult, amirror_conversation
 
-from ee.hogai.utils.feature_flags import has_conversation_task_mirror_feature_flag
+if settings.EE_AVAILABLE:
+    from ee.hogai.utils.feature_flags import has_conversation_task_mirror_feature_flag
 
 logger = structlog.get_logger(__name__)
 
@@ -30,7 +33,7 @@ class MirrorActivityResult:
 async def mirror_conversation_to_task_activity(inputs: MirrorConversationInputs) -> MirrorActivityResult:
     team = await Team.objects.aget(id=inputs.team_id)
     user = await User.objects.aget(id=inputs.user_id)
-    if not await sync_to_async(has_conversation_task_mirror_feature_flag)(team, user):
+    if not settings.EE_AVAILABLE or not await sync_to_async(has_conversation_task_mirror_feature_flag)(team, user):
         result = MirrorResult(skipped_reason="flag", task_id=None, run_id=None, appended_frames=0)
     else:
         result = await amirror_conversation(inputs.conversation_id, inputs.team_id, inputs.user_id)

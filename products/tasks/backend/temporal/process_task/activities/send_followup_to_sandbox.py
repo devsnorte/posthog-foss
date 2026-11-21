@@ -61,8 +61,7 @@ from products.tasks.backend.temporal.process_task.utils import (
     unmounted_mcp_installations_log_fields,
     upgrade_run_to_user_authorship,
 )
-
-from ee.hogai.sandbox import STOP_REASON_END_TURN, TURN_COMPLETE_METHOD
+from products.tasks.backend.turn_events import STOP_REASON_END_TURN, TURN_COMPLETE_METHOD
 
 logger = structlog.get_logger(__name__)
 

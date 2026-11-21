@@ -5,8 +5,14 @@ import asyncio
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
+
 import temporalio.activity
 from asgiref.sync import sync_to_async
+
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import is_team_over_ai_credit_budget
+
 from prometheus_client import Counter
 from structlog import get_logger
 
@@ -33,8 +39,6 @@ from products.subscriptions.backend.temporal.types import (
     SnapshotInsightsInputs,
     SnapshotInsightsResult,
 )
-
-from ee.billing.quota_limiting import is_team_over_ai_credit_budget
 
 if TYPE_CHECKING:
     from posthog.models.team.team import Team
@@ -475,6 +479,9 @@ async def _run_snapshot_subscription_insights(inputs: SnapshotInsightsInputs) ->
             subscription_id=inputs.subscription_id,
             organization_id=str(subscription.team.organization_id),
         )
+        return SnapshotInsightsResult()
+
+    if not settings.EE_AVAILABLE:
         return SnapshotInsightsResult()
 
     # Over budget: skip the summary but still deliver the rest of the subscription —

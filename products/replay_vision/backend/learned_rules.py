@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 
 from posthog.dataclasses import frozen
 from posthog.event_usage import groups
+from posthog.llm.untrusted import neutralize_markup
 from posthog.models.team import Team
 from posthog.models.team.extensions import get_or_create_team_extension
 
@@ -40,8 +41,6 @@ from products.replay_vision.backend.models.team_replay_vision_config import Team
 from products.replay_vision.backend.observation_formatting import describe_output, explanation_text, read_output
 from products.replay_vision.backend.scanner_access import snapshot_experiment_scope_q
 from products.replay_vision.backend.temporal.team_context import sanitize_prompt_text
-
-from ee.hogai.utils.untrusted import neutralize_markup
 
 logger = structlog.get_logger(__name__)
 

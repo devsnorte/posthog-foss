@@ -19,6 +19,7 @@ from posthog.errors import CH_TRANSIENT_ERRORS, InternalCHQueryError
 from posthog.event_usage import EventSource
 from posthog.exceptions import ClickHouseQueryMemoryLimitExceeded, ClickHouseQueryTimeOut
 from posthog.exceptions_capture import capture_exception
+from posthog.llm.privacy import is_privacy_mode_enabled
 from posthog.llm.system_one_client import system_one_configured
 from posthog.models import Team, User
 from posthog.models.organization import OrganizationMembership
@@ -77,8 +78,6 @@ from products.workflows.backend.services.data_suggestions.stages import (
     classify_event_stages,
 )
 from products.workflows.backend.services.hog_flow_templates import get_function_template_schema, list_step_templates
-
-from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
 
 logger = structlog.get_logger(__name__)
 

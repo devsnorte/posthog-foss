@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Model
 from django.http import HttpRequest, HttpResponse
@@ -12,7 +13,8 @@ from posthog.admin.console.records import RECORD_TYPES
 from posthog.admin.console.registry import console
 from posthog.models.organization import Organization
 
-from ee.billing.quota_limiting import QuotaResource
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaResource
 
 logger = structlog.get_logger(__name__)
 
@@ -81,7 +83,7 @@ class QuotaLimits:
         return limited
 
 
-_RESOURCE_CHOICES = [(resource.value, resource.value) for resource in QuotaResource]
+_RESOURCE_CHOICES = [(resource.value, resource.value) for resource in QuotaResource] if settings.EE_AVAILABLE else []
 
 
 class LimitProductForm(forms.Form):
@@ -122,7 +124,6 @@ def sync_members_to_billing(request: HttpRequest, obj: Model, form: forms.Form |
     return None
 
 
-@console.register_panel
 class BillingPanel(Panel):
     record = "organization"
     key = "billing"
@@ -183,3 +184,7 @@ for old in ("limit-product", "unlimit-product", "sync-to-billing"):
     console.register_moved_action(
         old_path=f"admin/posthog/organization/<uuid:pk>/{old}/", record="organization", target="#panel-billing"
     )
+
+
+if settings.EE_AVAILABLE:
+    console.register_panel(BillingPanel)

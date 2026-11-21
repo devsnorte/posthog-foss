@@ -13,6 +13,7 @@ from posthog.cloud_utils import is_cloud
 from posthog.errors import CH_TRANSIENT_ERRORS, InternalCHQueryError
 from posthog.exceptions import ClickHouseQueryMemoryLimitExceeded, ClickHouseQueryTimeOut
 from posthog.hogql_queries.utils.caller_context import map_in_caller_context
+from posthog.llm.privacy import is_privacy_mode_enabled
 from posthog.models import Team, User
 from posthog.ph_client import get_client
 from posthog.utils import get_instance_region
@@ -37,8 +38,6 @@ from products.workflows.backend.services.audience_suggestions.planner import Aud
 from products.workflows.backend.services.data_suggestions.builder import clean_copy
 from products.workflows.backend.services.data_suggestions.event_volume import weekly_counts
 from products.workflows.backend.services.data_suggestions.ranking import MIN_WEEKLY_COUNT, guess_stage
-
-from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
 
 logger = structlog.get_logger(__name__)
 

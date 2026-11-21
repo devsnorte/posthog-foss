@@ -11,11 +11,14 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
+from django.conf import settings
 from django.db import IntegrityError, connection, transaction
 from django.utils import timezone as django_timezone
 
 import structlog
-from ee.billing.quota_limiting import QuotaResource, is_team_over_credit_budget
+
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaResource, is_team_over_credit_budget
 
 from posthog.dataclasses import frozen
 from posthog.integrations import IntegrationManager, IntegrationRecord
@@ -420,6 +423,8 @@ def create_workflow_task(
 
 def _team_out_of_ai_credits(team: Team) -> bool:
     """False (fail open) when the bucket can't be read, so a Redis error never blocks every fire."""
+    if not settings.EE_AVAILABLE:
+        return True
     try:
         return is_team_over_credit_budget(team.api_token, QuotaResource.AI_CREDITS)
     except Exception:

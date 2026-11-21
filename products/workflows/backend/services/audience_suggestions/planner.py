@@ -1,5 +1,7 @@
 from typing import Any, Literal
 
+from django.conf import settings
+
 from pydantic import BaseModel, Field
 
 from posthog.models import Team, User
@@ -7,7 +9,8 @@ from posthog.models import Team, User
 from products.workflows.backend.facade.contracts import AudienceKind
 from products.workflows.backend.services.data_suggestions.llm import invoke_structured
 
-from ee.hogai.utils.untrusted import as_untrusted_data
+if settings.EE_AVAILABLE:
+    from ee.hogai.utils.untrusted import as_untrusted_data
 
 IDEAS_MODEL = "claude-haiku-5-5"
 WindowDays = Literal[7, 14, 30]
@@ -72,6 +75,8 @@ Rules:
 def suggest_audiences(
     *, team: Team, user: User, events: tuple[tuple[str, int], ...], analytics_client: Any
 ) -> list[AudienceIdea]:
+    if not settings.EE_AVAILABLE:
+        return []
     answer = invoke_structured(
         team=team,
         user=user,

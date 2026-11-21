@@ -11,6 +11,7 @@ from prometheus_client import Counter
 from pydantic import BaseModel, ConfigDict, Field
 
 from posthog.api.statement_timeout import statement_timeout
+from posthog.llm.privacy import is_privacy_mode_enabled
 from posthog.models import Team, User
 from posthog.models.team.extensions import get_or_create_team_extension
 from posthog.models.team.team_marketing_analytics_config import TeamMarketingAnalyticsConfig
@@ -27,8 +28,6 @@ from products.event_definitions.backend.models.event_property import EventProper
 from products.event_definitions.backend.models.property_definition import PropertyDefinition, effective_project_id_expr
 from products.marketing_analytics.backend.models.conversion_setup import ConversionRecommendationRun
 from products.marketing_analytics.backend.services.event_suggestions import DEFAULT_EXCLUDED_EVENTS
-
-from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
 
 logger = structlog.get_logger(__name__)
 
