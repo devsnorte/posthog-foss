@@ -4,12 +4,14 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
+from posthog.foss_access import access_schema_dependency
+
 
 class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("early_access_features", "0008_backfill_earlyaccessfeature_created_by"),
-        ("ee", "0028_alter_conversation_type"),
+        access_schema_dependency("0028_alter_conversation_type"),
     ]
 
     operations = [

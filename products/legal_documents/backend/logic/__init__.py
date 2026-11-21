@@ -28,12 +28,13 @@ from posthog.exceptions_capture import capture_exception
 from posthog.models.organization import Organization, OrganizationMembership
 from posthog.storage import object_storage
 
-from ee.billing.billing_manager import BillingManager, StartupProgramLabel
-
 from ..facade.enums import BaaBlockReason, DocumentType
 from ..models import LegalDocument
 from ..storage import signed_pdf_storage_key
 from . import pandadoc as pandadoc_client
+
+if settings.EE_AVAILABLE:
+    from ee.billing.billing_manager import BillingManager
 
 logger = structlog.get_logger(__name__)
 
@@ -44,7 +45,7 @@ BAA_ADDON_TYPES = frozenset({"boost", "scale", "enterprise"})
 # Startup program organizations always pay with credits, and credits do not cover
 # a BAA, whatever addon they hold. YC organizations keep BAA access. Staff who
 # impersonate a startup organization that pays for a BAA generate it on its behalf.
-BAA_BLOCKED_STARTUP_PROGRAM_LABEL: StartupProgramLabel = "Startup"
+BAA_BLOCKED_STARTUP_PROGRAM_LABEL = "Startup"
 
 # Attribute `annotate_signed_baa` writes onto each Organization row.
 SIGNED_BAA_ANNOTATION = "has_signed_baa"
@@ -85,6 +86,9 @@ def template_id_matches_document(document: LegalDocument, template_id: str) -> b
 
 
 def get_baa_block_reason(organization: Organization, impersonated: bool) -> BaaBlockReason | None:
+    if not settings.EE_AVAILABLE:
+        return BaaBlockReason.NO_QUALIFYING_ADDON
+
     billing = BillingManager(get_cached_instance_license()).get_billing(organization)
     on_startup_program = billing.get("startup_program_label") == BAA_BLOCKED_STARTUP_PROGRAM_LABEL
     if on_startup_program and not impersonated:

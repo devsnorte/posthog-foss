@@ -3,6 +3,7 @@
 from django.db import migrations
 
 import posthog.migration_helpers.not_valid_constraint
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -19,7 +20,7 @@ class Migration(migrations.Migration):
         ("dashboards", "0017_squash_2026_09_07_finalize_fks"),
         ("data_modeling", "0034_squash_2026_09_07_finalize_fks"),
         ("data_tools", "0001_squash_2026_09_07_initial"),
-        ("ee", "0061_squash_2026_09_07_finalize_fks"),
+        access_schema_dependency("0061_squash_2026_09_07_finalize_fks"),
         ("event_definitions", "0001_squash_2026_09_07_initial"),
         ("exports", "0001_squash_2026_09_07_initial"),
         ("feature_flags", "0018_squash_2026_09_07_finalize_fks"),

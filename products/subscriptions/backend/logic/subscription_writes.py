@@ -75,7 +75,8 @@ from products.subscriptions.backend.temporal.ai_subscription.spec_generator impo
     sanitize_prompt,
 )
 
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
 
 from .subscription_reads import context_rows, subscription_record
 from .summary_quota import invalidate_summary_quota_cache, validate_summary_enabled_org_limit
@@ -604,6 +605,8 @@ class _SubscriptionWrite:
     def _validate_summary_credit_budget(self) -> None:
         # Refuse to turn a summary on while the org is over its AI credit budget,
         # mirroring the chat assistant's gate (ee/api/conversation.py).
+        if not settings.EE_AVAILABLE:
+            raise SubscriptionQuotaExceededError("The AI subscription provider is unavailable")
         if is_team_limited(self.team.api_token, QuotaResource.AI_CREDITS, QuotaLimitingCaches.QUOTA_LIMITER_CACHE_KEY):
             raise SubscriptionQuotaExceededError(
                 "Your organization reached its AI credit usage limit. "

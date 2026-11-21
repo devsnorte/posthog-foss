@@ -14,6 +14,7 @@ from django.test import override_settings
 
 from parameterized import parameterized
 from prometheus_client import REGISTRY
+from starlette.concurrency import iterate_in_threadpool
 
 from posthog.api import streaming
 from posthog.api.streaming import (
@@ -22,8 +23,6 @@ from posthog.api.streaming import (
     sse_streaming_response,
     streaming_response,
 )
-
-from ee.hogai.utils.asgi import SyncIterableToAsync
 
 
 def _gen() -> Iterator[bytes]:
@@ -213,7 +212,7 @@ class TestSSEAsyncCancellation:
         # (baseline-relative: this test runs outside the slot-isolation fixture).
         baseline = streaming._active_stream_count
         endpoint = f"test_async_cancel_{synchronous}"
-        source = SyncIterableToAsync(blocking_sync()) if synchronous else blocking()
+        source = iterate_in_threadpool(blocking_sync()) if synchronous else blocking()
         stream = _instrument_stream(source, endpoint, _reserve_slot())
         assert isinstance(stream, AsyncIterable)
 
@@ -369,3 +368,25 @@ class TestSSEConcurrencyCap:
                 "posthog_sse_rejected_over_cap_total", {"endpoint": "test_cap_zero"}
             )
             assert rejected_count is not None and rejected_count >= 1.0
+
+
+def test_sync_stream_is_lazy_and_closes_its_async_generator() -> None:
+    from posthog.api.streaming import sync_stream
+
+    events = []
+
+    async def chunks():
+        try:
+            events.append("first")
+            yield b"one"
+            events.append("second")
+            yield b"two"
+        finally:
+            events.append("closed")
+
+    stream = sync_stream(chunks())
+    assert events == []
+    assert next(stream) == b"one"
+    stream.close()
+    assert events == ["first", "closed"]
+    assert list(sync_stream(chunks())) == [b"one", b"two"]

@@ -99,7 +99,7 @@ export const todayProjectMenuLogic = kea<todayProjectMenuLogicType>([
                 projectCreationForbiddenReason: string | null
             ): ProjectMenuAction[] => [
                 ...(currentTeam ? [{ key: 'project-settings' as const, disabledReason: null }] : []),
-                ...(preflight?.can_create_org
+                ...(preflight?.foss_multi_project || preflight?.can_create_org
                     ? [
                           {
                               key: 'new-project' as const,

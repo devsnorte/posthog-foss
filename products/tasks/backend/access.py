@@ -24,12 +24,13 @@ from products.tasks.backend.metrics import (
     observe_desktop_access_flag_unresolved,
 )
 
-from ee.billing.billing_manager import (
-    BillingManager,
-    FundingStatusUnavailable,
-    OrganizationFundingStatus,
-    PrepaidCreditState,
-)
+if TYPE_CHECKING or settings.EE_AVAILABLE:
+    from ee.billing.billing_manager import (
+        BillingManager,
+        FundingStatusUnavailable,
+        OrganizationFundingStatus,
+        PrepaidCreditState,
+    )
 
 if TYPE_CHECKING:
     from posthog.models.organization import Organization
@@ -66,6 +67,8 @@ class DesktopAccessDecision(StrEnum):
 
 
 def _get_funding_status(user: User, organization: "Organization") -> OrganizationFundingStatus:
+    if not settings.EE_AVAILABLE:
+        raise DesktopAccessResolutionError("Funding status is unavailable on this installation")
     try:
         return BillingManager(get_cached_instance_license(), user).get_funding_status(organization)
     except FundingStatusUnavailable as error:

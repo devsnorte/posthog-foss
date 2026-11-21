@@ -8,6 +8,8 @@ from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+from django.conf import settings
+
 import structlog
 import posthoganalytics
 from temporalio import activity
@@ -19,7 +21,13 @@ from posthog.temporal.common.metrics import get_metric_meter
 
 from products.signals.backend.trial.funding import TrialFunding
 
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited, self_driving_quota_resource
+if TYPE_CHECKING or settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import (
+        QuotaLimitingCaches,
+        QuotaResource,
+        is_team_limited,
+        self_driving_quota_resource,
+    )
 
 if TYPE_CHECKING:
     from posthog.models import Team
@@ -54,6 +62,8 @@ def is_team_signals_quota_limited(team_api_token: str, resource: QuotaResource) 
     Records `signals_quota_check_failed_open_total` so the bypass is alertable.
     Synchronous (Redis read); wrap in `sync_to_async` when calling from async code.
     """
+    if not settings.EE_AVAILABLE:
+        raise RuntimeError("Signals billing is unavailable on this installation")
     try:
         return is_team_limited(team_api_token, resource, QuotaLimitingCaches.QUOTA_LIMITER_CACHE_KEY)
     except Exception:
@@ -175,6 +185,10 @@ def _self_driving_admission(
             paid_authorized=paid_authorized,
             reason=reason,
         )
+    if not settings.EE_AVAILABLE:
+        return SelfDrivingAdmission(
+            team=team, gate=SelfDrivingQuotaGate(limited=True, enforced=True), reason="billing_unavailable"
+        )
     limited = is_team_signals_quota_limited(team.api_token, self_driving_quota_resource(team.organization))
     return SelfDrivingAdmission(
         team=team,
@@ -197,6 +211,8 @@ def self_driving_quota_gate(
 
 def self_driving_limit_name(team: "Team") -> str:
     """Use the same cutover for customer-facing limit units and enforcement."""
+    if not settings.EE_AVAILABLE:
+        return "usage limit"
     if self_driving_quota_resource(team.organization) == QuotaResource.SIGNALS_SPEND_CREDITS:
         return "spending limit"
     return "pull request limit"
@@ -235,6 +251,8 @@ def notify_scout_quota_paused(team: "Team") -> None:
     or a raised limit that the org then exceeds again) notifies again. Best-effort: a failed send
     must never fail the gate that called it. Requires `team.organization` to be loaded.
     """
+    if not settings.EE_AVAILABLE:
+        return
     try:
         resource = self_driving_quota_resource(team.organization)
         usage = (team.organization.usage or {}).get(resource.value) or {}

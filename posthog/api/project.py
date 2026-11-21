@@ -78,7 +78,7 @@ from posthog.api.team.viewsets import EventIngestionRestrictionSerializer, team_
 from posthog.api.utils import validate_authorized_url_wildcards
 from posthog.auth import SessionAuthentication
 from posthog.caching.organization_serializer_cache import _bump_org_serializer_cache_version
-from posthog.cloud_utils import get_cached_instance_license, is_cloud
+from posthog.cloud_utils import get_cached_instance_license, is_cloud, is_foss_self_hosted
 from posthog.constants import AvailableFeature
 from posthog.decorators import disallow_if_impersonated
 from posthog.event_usage import report_user_action
@@ -1786,8 +1786,6 @@ class ProjectViewSet(
         return self.get_object().passthrough_team
 
     def perform_destroy(self, project: Project):
-        from ee.billing.billing_manager import BillingManager
-
         # Check if bulk deletion operations are disabled via environment variable
         # Projects contain teams, so we need to block project deletion too
         if settings.DISABLE_BULK_DELETES:
@@ -1803,13 +1801,13 @@ class ProjectViewSet(
         is_last_project = project.organization.projects.count() == 1
         license = get_cached_instance_license()
         try:
-            has_active_subscription = (
-                is_last_project
-                and settings.EE_AVAILABLE
-                and is_cloud()
-                and license
-                and BillingManager(license).get_billing(project.organization).get("has_active_subscription")
-            )
+            has_active_subscription = False
+            if is_last_project and settings.EE_AVAILABLE and is_cloud() and license:
+                from ee.billing.billing_manager import BillingManager
+
+                has_active_subscription = (
+                    BillingManager(license).get_billing(project.organization).get("has_active_subscription")
+                )
         except Exception:
             logger.exception("Failed to check billing status before project deletion; allowing deletion to proceed")
             has_active_subscription = False
@@ -2454,6 +2452,8 @@ class PremiumMultiProjectPermission(BasePermission):
             # If we're requesting to make a demo project but the org already has a demo project
             if organization.teams.filter(is_demo=True).exists():
                 return False
+        elif is_foss_self_hosted():
+            return True
 
         current_non_demo_project_count = organization.teams.exclude(is_demo=True).distinct("project_id").count()
         projects_feature = organization.get_available_feature(AvailableFeature.ORGANIZATIONS_PROJECTS)

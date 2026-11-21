@@ -1,6 +1,8 @@
 import json
 import datetime as dt
 
+from django.conf import settings as django_settings
+
 import structlog
 
 from posthog.models.team import Team
@@ -19,7 +21,8 @@ from products.pulse.backend.generation.schemas import KIND_DESCRIPTIONS, BriefOu
 from products.pulse.backend.models import BriefConfig
 from products.pulse.backend.sources.base import SourceItem, build_evidence_index
 
-from ee.hogai.llm import MaxChatOpenAI
+if django_settings.EE_AVAILABLE:
+    from ee.hogai.llm import MaxChatOpenAI
 
 logger = structlog.get_logger(__name__)
 
@@ -78,6 +81,8 @@ async def synthesize_brief(
     # Quiet periods must cost ~nothing: no items, no LLM call.
     if not items:
         return BriefOut(sections=[], opportunities=[])
+    if not django_settings.EE_AVAILABLE:
+        raise RuntimeError("The Pulse AI synthesis provider is unavailable")
     settings = BriefSettings.from_config(config)
     # The focus text is fenced in a <team_focus> block. sanitize_user_text strips invisible chars,
     # LLM framing tags (including the fence itself), and collapses newlines, so user configuration

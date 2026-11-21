@@ -27,7 +27,6 @@ from posthog.models.user import User
 
 from products.access_control.backend.facade.user_access_control import UserAccessControl
 from products.actions.backend.facade.api import get_actions
-from products.experiments.backend.experiment_service import ExperimentService
 from products.experiments.backend.flag_enrollment import enrolled_people_by_flag
 from products.experiments.backend.health.inputs_payload import health_inputs_payload
 from products.experiments.backend.health.loader import evaluate_experiment_health, load_experiment_health_inputs
@@ -122,6 +121,8 @@ def create_experiment(*, team: Team, user: User, input_dto: CreateExperimentInpu
     )
 
     # Call existing service (already @transaction.atomic)
+    from products.experiments.backend.experiment_service import ExperimentService
+
     service = ExperimentService(team=team, user=user)
     experiment_model = service.create_experiment(
         name=input_dto.name,

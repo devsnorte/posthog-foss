@@ -17,7 +17,8 @@ from posthog.sync import database_sync_to_async
 from posthog.temporal.common.base import PostHogWorkflow
 from posthog.temporal.common.client import async_connect
 
-from ee.hogai.llm_traces_summaries.summarize_traces import LLMTracesSummarizer
+if settings.EE_AVAILABLE:
+    from ee.hogai.llm_traces_summaries.summarize_traces import LLMTracesSummarizer
 
 logger = structlog.get_logger(__name__)
 
@@ -34,6 +35,8 @@ async def summarize_llm_traces_activity(
     inputs: SummarizeLLMTracesInputs,
 ) -> None:
     """Summmarize and store embeddings for all LLM traces in the date range."""
+    if not settings.EE_AVAILABLE:
+        raise RuntimeError("The LLM trace summarization service is unavailable on this installation")
     team = await database_sync_to_async(Team.objects.get)(id=inputs.team_id)
     summarizer = LLMTracesSummarizer(team=team)
     date_range = DateRange(date_from=inputs.date_from, date_to=inputs.date_to)
@@ -67,6 +70,8 @@ async def execute_summarize_llm_traces(
     """
     Start the direct summarization workflow (no streaming) to stringify traces > generate summaries > generate embeddings and store everything.
     """
+    if not settings.EE_AVAILABLE:
+        raise RuntimeError("The LLM trace summarization service is unavailable on this installation")
     workflow_id = f"llm-traces:summarize-traces:{date_range.date_from}:{date_range.date_to}:{team.id}:{uuid.uuid4()}"
     if not date_range.date_from and not date_range.date_to:
         raise ValueError("At least one of date_from or date_to must be provided when summarizing traces")

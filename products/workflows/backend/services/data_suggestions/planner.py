@@ -1,6 +1,8 @@
 import dataclasses
 from typing import Any, Literal
 
+from django.conf import settings
+
 from pydantic import BaseModel, Field
 
 from posthog.dataclasses import frozen
@@ -11,7 +13,8 @@ from products.workflows.backend.facade.contracts import LifecycleStage, OutlineK
 from products.workflows.backend.services.data_suggestions.llm import invoke_structured
 from products.workflows.backend.services.hog_flow_templates import StepTemplate
 
-from ee.hogai.utils.untrusted import as_untrusted_data
+if settings.EE_AVAILABLE:
+    from ee.hogai.utils.untrusted import as_untrusted_data
 
 MAX_PLANNED_STEPS = 20
 
@@ -231,6 +234,8 @@ wait_until_event step. Never use a delay followed by a conditional_branch for it
 
 
 def suggest_ideas(*, team: Team, user: User, context: IdeaContext, analytics_client: Any = None) -> list[WorkflowIdea]:
+    if not settings.EE_AVAILABLE:
+        return []
     slack_rule = "" if context.has_slack else "The team has not connected Slack yet, so prefer other steps."
     lines = [
         f"{name} ({count} in the last 7 days, stage: {context.stages[name]})"
@@ -282,6 +287,8 @@ def _channel_rule(channels: frozenset[Channel], mobile_first: bool) -> str:
 def plan_steps(
     *, team: Team, user: User, context: StepsContext, analytics_client: Any = None
 ) -> PlannedWorkflow | None:
+    if not settings.EE_AVAILABLE:
+        return None
     email_rule = (
         "For each email step, set email_template_id only when a saved template's name and subject clearly match "
         "the purpose of that step. Generic or placeholder templates never match. Otherwise leave it null and "

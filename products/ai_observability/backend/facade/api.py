@@ -7,8 +7,6 @@ from typing import IO, Any, Final
 
 from django.utils.timezone import now
 
-from posthog.schema import HogQLPropertyFilter
-
 from posthog.clickhouse.client.connection import Workload
 from posthog.exceptions_capture import capture_exception
 from posthog.hogql_queries.ai.ai_table_resolver import AIEventsUnavailableError
@@ -16,7 +14,6 @@ from posthog.models import Team, User
 from posthog.models.activity_logging.activity_log import Change, Detail, log_activity
 
 from products.access_control.backend.facade.user_access_control import UserAccessControl
-from products.engineering_analytics.backend.facade import api as engineering_analytics_api
 from products.engineering_analytics.backend.facade.contracts import BranchPRMatch, GitHubSourceNotConnectedError
 from products.exports.backend.facade.api import (
     EXPORT_WORKFLOW_TIMEOUT,
@@ -46,7 +43,7 @@ from ..logic.evaluations.judge_preview import (
 )
 from ..logic.evaluations.overview import evaluation_result, group_by_evaluation, overview_totals, pass_rate_overview
 from ..logic.evaluations.overview_queries import load_bucket_counts, load_category_counts
-from ..logic.evaluations.pass_filters import build_evaluation_pass_filters, build_pass_rules
+from ..logic.evaluations.pass_filters import build_pass_rules
 from ..logic.evaluations.period import (
     InvalidPeriodError as InvalidPeriodError,
     PeriodBounds,
@@ -145,6 +142,10 @@ from ..logic.traces.turn import Turn, missing_reason, preview
 from ..logic.traces.usage import Usage
 from ..temporal.trace_summary_client import start_trace_summary
 from . import contracts
+from .evaluation_markers import (
+    mentions_evaluation_pass_markers as mentions_evaluation_pass_markers,
+    resolve_evaluation_pass_markers as resolve_evaluation_pass_markers,
+)
 
 
 class TraceNotFoundError(Exception):
@@ -602,28 +603,6 @@ def search_trace(
     )
 
 
-def resolve_evaluation_pass_markers[P](properties: list[P], team_id: int) -> list[P]:
-    """Replace each evaluation pass marker with the team's current condition."""
-    markers = {contracts.EVALUATION_GRADED_MARKER, contracts.EVALUATION_PASSED_MARKER}
-    if not any(isinstance(prop, HogQLPropertyFilter) and prop.key in markers for prop in properties):
-        return properties
-    filters = build_evaluation_pass_filters(team_id)
-    conditions = {
-        contracts.EVALUATION_GRADED_MARKER: filters.graded,
-        contracts.EVALUATION_PASSED_MARKER: filters.passed,
-    }
-    return [
-        prop.model_copy(update={"key": conditions[prop.key]})
-        if isinstance(prop, HogQLPropertyFilter) and prop.key in conditions
-        else prop
-        for prop in properties
-    ]
-
-
-def mentions_evaluation_pass_markers(text: str) -> bool:
-    return contracts.EVALUATION_GRADED_MARKER in text or contracts.EVALUATION_PASSED_MARKER in text
-
-
 def get_trace_evaluation_results(team: Team, user: User | None, trace_id: str) -> contracts.TraceEvaluationResults:
     rows = load_evaluation_results(team, user, trace_id)
     configs = load_output_configs(team, user, {row.evaluation_uuid for row in rows if row.evaluation_uuid})
@@ -842,6 +821,8 @@ def get_trace_pull_request(
     # A default branch is the head of unrelated pull requests, such as fork and release ones, so it links to none.
     if ref is None or ref.is_default_branch:
         return contracts.TracePullRequestLookup(pull_request=None)
+    from products.engineering_analytics.backend.facade import api as engineering_analytics_api
+
     try:
         matches = engineering_analytics_api.resolve_branch(
             team=team,

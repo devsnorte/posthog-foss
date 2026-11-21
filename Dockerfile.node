@@ -93,7 +93,6 @@ RUN NODE_OPTIONS="--max-old-space-size=16384" bin/turbo --filter=@posthog/nodejs
 # Python and Rust trees to any layer, and BuildKit reruns this step when any mounted file changes.
 ARG COMMIT_HASH
 RUN --mount=type=bind,source=posthog,target=/schema-src/posthog \
-    --mount=type=bind,source=ee,target=/schema-src/ee \
     --mount=type=bind,source=products,target=/schema-src/products \
     --mount=type=bind,source=nodejs/src,target=/schema-src/nodejs/src \
     --mount=type=bind,source=rust/persons_migrations,target=/schema-src/rust/persons_migrations \

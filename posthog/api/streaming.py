@@ -12,6 +12,21 @@ from django.http import HttpResponse, StreamingHttpResponse
 
 from prometheus_client import Counter, Gauge, Histogram
 
+
+def sync_stream[T](stream: AsyncGenerator[T]) -> Generator[T]:
+    """Consume an async generator incrementally on a synchronous WSGI thread."""
+    with asyncio.Runner() as runner:
+        try:
+            while True:
+                try:
+                    chunk = runner.run(anext(stream))
+                except StopAsyncIteration:
+                    return
+                yield chunk
+        finally:
+            runner.run(stream.aclose())
+
+
 # What StreamingHttpResponse actually accepts: sync or async iterables of bytes or
 # str chunks (Django encodes str via the response charset). Broad on purpose — SSE
 # views yield str, proxies yield bytes, and the empty-stream stub passes a list.

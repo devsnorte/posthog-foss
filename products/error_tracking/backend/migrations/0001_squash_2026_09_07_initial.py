@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.uuidt
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -47,7 +48,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("cohorts", "0009_cohort_backfill_per_kind_uniqueness"),
-        ("ee", "0059_scimprovisioneduser_unique_config"),
+        access_schema_dependency("0059_scimprovisioneduser_unique_config"),
         ("posthog", "1340_drop_userproductlist_reason_columns"),
     ]
 

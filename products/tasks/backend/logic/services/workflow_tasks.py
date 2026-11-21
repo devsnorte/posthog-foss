@@ -11,10 +11,14 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
+from django.conf import settings
 from django.db import IntegrityError, connection, transaction
 from django.utils import timezone as django_timezone
 
 import structlog
+
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaResource, is_team_over_credit_budget
 
 from posthog.dataclasses import frozen
 from posthog.integrations import IntegrationManager, IntegrationRecord
@@ -30,6 +34,10 @@ from products.slack_app.backend.models import SlackThreadTaskMapping
 from products.slack_app.backend.slack_thread import SlackThreadContext
 from products.tasks.backend.facade import contracts
 from products.tasks.backend.facade.profiles import SourceKind, TaskRunOptions, TaskSource
+from products.tasks.backend.facade.workflow_task_limits import (
+    WORKFLOW_TASK_RATE_CAP_PER_DAY,
+    WORKFLOW_TASK_TEAM_RATE_CAP_PER_DAY,
+)
 from products.tasks.backend.logic.services.ai_run_defaults import resolve_ai_run_selection
 from products.tasks.backend.logic.services.code_usage_gate import usage_limit_response
 from products.tasks.backend.logic.services.gateway_model_pin import model_allowed_by_product_pin
@@ -51,8 +59,6 @@ from products.tasks.backend.task_profiles import WORKFLOW
 from products.tasks.backend.task_sources import idempotency_key_q, source_q
 from products.tasks.backend.temporal.constants import WORKFLOW_RUN_IDLE_TIMEOUT_SECONDS
 
-from ee.billing.quota_limiting import QuotaResource, is_team_over_credit_budget
-
 logger = structlog.get_logger(__name__)
 
 ACTIVE_RUN_STATUSES = [TaskRun.Status.NOT_STARTED, TaskRun.Status.QUEUED, TaskRun.Status.IN_PROGRESS]
@@ -64,25 +70,6 @@ EVENT_PROMPT_MAX_CHARS = 16_000
 # Matches the in-progress marker the task's own Slack updates use, so the later swap to
 # `x` replaces this rather than stacking a second reaction beside it.
 TRIGGER_ACK_EMOJI = "eyes"
-
-# Daily ceilings on created tasks (trailing 24h) on top of the in-flight cap: a workflow
-# triggered by a common event can otherwise sustain hundreds of agent runs a day through
-# the concurrency cap alone. The team cap aggregates across a team's workflows so N
-# workflows can't each spend the per-workflow cap; it is deliberately separate from the
-# loops budget (LOOP_RATE_CAP_PER_DAY / LOOP_TEAM_RATE_CAP_PER_DAY).
-WORKFLOW_TASK_RATE_CAP_PER_DAY = 100
-WORKFLOW_TASK_TEAM_RATE_CAP_PER_DAY = 500
-
-# A project raises either cap for itself in project settings, up to this multiple of the
-# default. The ceiling is held by the team API serializer, so support can still take a
-# project past it in Django admin, which does not use that serializer.
-WORKFLOW_TASK_RATE_CAP_SELF_SERVE_MULTIPLIER = 5
-MAX_SELF_SERVE_WORKFLOW_TASK_RATE_CAP_PER_DAY = (
-    WORKFLOW_TASK_RATE_CAP_PER_DAY * WORKFLOW_TASK_RATE_CAP_SELF_SERVE_MULTIPLIER
-)
-MAX_SELF_SERVE_WORKFLOW_TASK_TEAM_RATE_CAP_PER_DAY = (
-    WORKFLOW_TASK_TEAM_RATE_CAP_PER_DAY * WORKFLOW_TASK_RATE_CAP_SELF_SERVE_MULTIPLIER
-)
 
 # The workflow step that waits on the run reads a capped copy of the final message.
 FINAL_MESSAGE_LIMIT_SENTENCE = (
@@ -436,6 +423,8 @@ def create_workflow_task(
 
 def _team_out_of_ai_credits(team: Team) -> bool:
     """False (fail open) when the bucket can't be read, so a Redis error never blocks every fire."""
+    if not settings.EE_AVAILABLE:
+        return True
     try:
         return is_team_over_credit_budget(team.api_token, QuotaResource.AI_CREDITS)
     except Exception:

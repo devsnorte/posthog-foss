@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import cast
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 from django.db.models import Count, OuterRef, Q, QuerySet, Subquery, Sum, TextChoices
@@ -81,7 +82,8 @@ from products.warehouse_sources.backend.facade.types import (
     ExternalDataSourceStatus,
 )
 
-from ee.billing.billing_manager import BillingManager
+if settings.EE_AVAILABLE:
+    from ee.billing.billing_manager import BillingManager
 
 logger = structlog.get_logger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -517,8 +519,10 @@ class DataWarehouseViewSet(TeamAndOrgViewSetMixin, viewsets.ViewSet):
         breakdown_of_rows_by_source: dict[str, int] = {}
 
         try:
-            billing_manager = BillingManager(get_cached_instance_license())
-            org_billing = billing_manager.get_billing(organization=self.team.organization)
+            org_billing = None
+            if settings.EE_AVAILABLE:
+                billing_manager = BillingManager(get_cached_instance_license())
+                org_billing = billing_manager.get_billing(organization=self.team.organization)
 
             if org_billing and org_billing.get("billing_period"):
                 billing_period = org_billing["billing_period"]

@@ -5,6 +5,7 @@ from kombu import Exchange, Queue
 
 from posthog.settings.base_variables import TEST
 from posthog.settings.data_stores import REDIS_URL
+from posthog.settings.ee import EE_AVAILABLE
 from posthog.settings.utils import get_from_env, str_to_bool
 
 # Freeze the worker parent's objects before the prefork pool forks, so the pool children keep sharing
@@ -23,7 +24,6 @@ CELERY_DEFAULT_QUEUE = "celery"
 # List them here so Celery's import_default_modules() registers them deterministically
 # (worker + tests), independent of what else got imported.
 CELERY_IMPORTS: list[str] = [
-    "ee.tasks.quota_limiting",
     "posthog.api.oauth.cimd",
     "posthog.api.oauth.provisioning_review",
     "posthog.caching.warming",
@@ -42,6 +42,8 @@ CELERY_IMPORTS: list[str] = [
     "products.alerts.backend.tasks.tasks",
     "products.ai_gateway.backend.tasks.tasks",
 ]
+if EE_AVAILABLE:
+    CELERY_IMPORTS.append("ee.tasks.quota_limiting")
 
 
 _CERT_REQS_ALIASES = {"cert_required": "required", "cert_optional": "optional", "cert_none": "none"}

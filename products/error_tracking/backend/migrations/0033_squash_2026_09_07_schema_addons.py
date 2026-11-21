@@ -2,6 +2,8 @@
 
 from django.db import migrations
 
+from posthog.foss_access import access_schema_dependency
+
 
 class Migration(migrations.Migration):
     initial = True
@@ -30,7 +32,7 @@ class Migration(migrations.Migration):
         ("data_tools", "0001_squash_2026_09_07_initial"),
         ("data_warehouse", "0001_squash_2026_09_07_initial"),
         ("early_access_features", "0001_squash_2026_09_07_initial"),
-        ("ee", "0061_squash_2026_09_07_finalize_fks"),
+        access_schema_dependency("0061_squash_2026_09_07_finalize_fks"),
         ("endpoints", "0001_squash_2026_09_07_initial"),
         ("error_tracking", "0001_squash_2026_09_07_initial"),
         ("error_tracking", "0031_errortrackingalert_errortrackingalertdestination_and_more"),

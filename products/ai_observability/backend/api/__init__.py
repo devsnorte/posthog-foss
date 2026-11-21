@@ -1,62 +1,47 @@
-from .ai_blob import AIBlobViewSet
-from .clustering import AIObservabilityClusteringRunViewSet
-from .clustering_config import ClusteringConfigViewSet
-from .clustering_job import ClusteringJobViewSet
-from .datasets import DatasetItemViewSet, DatasetViewSet
-from .eval_suggestions import EvalSuggestionViewSet
-from .evaluation_backfills import EvaluationBackfillViewSet
-from .evaluation_config import EvaluationConfigViewSet
-from .evaluation_directories import EvaluationDirectoryViewSet
-from .evaluation_reports import EvaluationReportViewSet
-from .evaluation_runs import EvaluationRunViewSet
-from .evaluations import EvaluationViewSet
-from .instrumentation_checklist import AIObservabilityInstrumentationChecklistViewSet
-from .models import LLMModelsViewSet
-from .offline_experiment_reads import OfflineScorerViewSet
-from .offline_experiments import OfflineExperimentViewSet
-from .parser_recipes import ParserRecipeViewSet
-from .personal_spend import PersonalSpendInternalViewSet, PersonalSpendViewSet
-from .provider_keys import LLMProviderKeyValidationViewSet, LLMProviderKeyViewSet
-from .proxy import SUPPORTED_MODELS_WITH_THINKING, LLMProxyViewSet
-from .review_queues import ReviewQueueItemViewSet, ReviewQueueViewSet
-from .score_definitions import ScoreDefinitionViewSet
-from .summarization import AIObservabilitySummarizationViewSet
-from .taggers import TaggerViewSet
-from .text_repr import AIObservabilityTextReprViewSet
-from .trace_reviews import TraceReviewViewSet
-from .translate import AIObservabilityTranslateViewSet
+"""Import endpoint implementations on demand so metrics can load independently."""
 
-__all__ = [
-    "AIBlobViewSet",
-    "ClusteringConfigViewSet",
-    "ClusteringJobViewSet",
-    "AIObservabilityClusteringRunViewSet",
-    "AIObservabilityInstrumentationChecklistViewSet",
-    "LLMModelsViewSet",
-    "LLMProxyViewSet",
-    "AIObservabilityTextReprViewSet",
-    "AIObservabilitySummarizationViewSet",
-    "AIObservabilityTranslateViewSet",
-    "SUPPORTED_MODELS_WITH_THINKING",
-    "DatasetViewSet",
-    "DatasetItemViewSet",
-    "EvaluationViewSet",
-    "EvalSuggestionViewSet",
-    "EvaluationBackfillViewSet",
-    "EvaluationDirectoryViewSet",
-    "EvaluationReportViewSet",
-    "EvaluationRunViewSet",
-    "EvaluationConfigViewSet",
-    "LLMProviderKeyViewSet",
-    "LLMProviderKeyValidationViewSet",
-    "ReviewQueueViewSet",
-    "ReviewQueueItemViewSet",
-    "ScoreDefinitionViewSet",
-    "OfflineExperimentViewSet",
-    "OfflineScorerViewSet",
-    "PersonalSpendInternalViewSet",
-    "PersonalSpendViewSet",
-    "TaggerViewSet",
-    "TraceReviewViewSet",
-    "ParserRecipeViewSet",
-]
+from importlib import import_module
+from typing import Any
+
+_VIEW_MODULES = {
+    "AIBlobViewSet": "ai_blob",
+    "ClusteringConfigViewSet": "clustering_config",
+    "ClusteringJobViewSet": "clustering_job",
+    "AIObservabilityClusteringRunViewSet": "clustering",
+    "AIObservabilityInstrumentationChecklistViewSet": "instrumentation_checklist",
+    "LLMModelsViewSet": "models",
+    "LLMProxyViewSet": "proxy",
+    "AIObservabilityTextReprViewSet": "text_repr",
+    "AIObservabilitySummarizationViewSet": "summarization",
+    "AIObservabilityTranslateViewSet": "translate",
+    "SUPPORTED_MODELS_WITH_THINKING": "proxy",
+    "DatasetViewSet": "datasets",
+    "DatasetItemViewSet": "datasets",
+    "EvaluationViewSet": "evaluations",
+    "EvalSuggestionViewSet": "eval_suggestions",
+    "EvaluationBackfillViewSet": "evaluation_backfills",
+    "EvaluationDirectoryViewSet": "evaluation_directories",
+    "EvaluationReportViewSet": "evaluation_reports",
+    "EvaluationRunViewSet": "evaluation_runs",
+    "EvaluationConfigViewSet": "evaluation_config",
+    "LLMProviderKeyViewSet": "provider_keys",
+    "LLMProviderKeyValidationViewSet": "provider_keys",
+    "ReviewQueueViewSet": "review_queues",
+    "ReviewQueueItemViewSet": "review_queues",
+    "ScoreDefinitionViewSet": "score_definitions",
+    "OfflineExperimentViewSet": "offline_experiments",
+    "OfflineScorerViewSet": "offline_experiment_reads",
+    "PersonalSpendInternalViewSet": "personal_spend",
+    "PersonalSpendViewSet": "personal_spend",
+    "TaggerViewSet": "taggers",
+    "TraceReviewViewSet": "trace_reviews",
+    "ParserRecipeViewSet": "parser_recipes",
+}
+
+__all__ = list(_VIEW_MODULES)
+
+
+def __getattr__(name: str) -> Any:
+    if name not in _VIEW_MODULES:
+        raise AttributeError(name)
+    return getattr(import_module(f"{__name__}.{_VIEW_MODULES[name]}"), name)

@@ -73,8 +73,9 @@ from products.replay_vision.backend.scanner_config import scanner_config_error
 from products.replay_vision.backend.scanner_query import NarrowingRefusal, combines_with_and, narrow_chosen_query
 from products.replay_vision.backend.tags import slugify_tag
 
-from ee.hogai.utils.feature_flags import is_core_memory_disabled
-from ee.hogai.utils.untrusted import as_untrusted_data
+if settings.EE_AVAILABLE:
+    from ee.hogai.utils.feature_flags import is_core_memory_disabled
+from posthog.llm.untrusted import as_untrusted_data
 
 logger = structlog.get_logger(__name__)
 
@@ -438,7 +439,9 @@ def _business_context(team: Team, user: User) -> str:
         description = (team.project.product_description or "").strip() if team.project else ""
         if description:
             parts.append(description)
-        memory_text = "" if is_core_memory_disabled(team, user) else get_team_business_context(team)
+        memory_text = (
+            "" if not settings.EE_AVAILABLE or is_core_memory_disabled(team, user) else get_team_business_context(team)
+        )
         if memory_text:
             parts.append(_head_and_tail(memory_text, _MAX_BUSINESS_CONTEXT_CHARS))
     except Exception:

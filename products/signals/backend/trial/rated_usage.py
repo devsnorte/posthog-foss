@@ -4,6 +4,7 @@ from itertools import groupby
 from typing import TypedDict
 from uuid import UUID
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -13,7 +14,8 @@ from products.signals.backend.rated_usage_models import SignalRatedUsage
 from products.signals.backend.trial.models import SignalTrialGrant
 from products.signals.backend.usage import daily_spend
 
-from ee.billing.billing_manager import BillingManager
+if settings.EE_AVAILABLE:
+    from ee.billing.billing_manager import BillingManager
 
 
 class FrozenGrantAllocation(TypedDict):
@@ -42,6 +44,8 @@ def report_trial_grant(team_id: int, grant_id: UUID) -> None:
     organization = Organization.objects.filter(id=grant.organization_id).first()
     if organization is None:
         return
+    if not settings.EE_AVAILABLE:
+        raise RuntimeError("Trial credit reporting requires a billing service")
     BillingManager(None).open_external_credit_pool(
         organization,
         grant_id=trial_pool_id(grant),

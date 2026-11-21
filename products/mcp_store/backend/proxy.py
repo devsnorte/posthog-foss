@@ -9,14 +9,13 @@ from django.utils import timezone
 
 import httpx
 import structlog
+from starlette.concurrency import iterate_in_threadpool
 
 from posthog.api.streaming import sse_streaming_response
 from posthog.security.pinned_httpx import pinned_client
 from posthog.security.pinned_requests import SSRFBlockedError
 from posthog.security.url_validation import is_url_allowed
 from posthog.settings import SERVER_GATEWAY_INTERFACE
-
-from ee.hogai.utils.asgi import SyncIterableToAsync
 
 from .borrowed_credential import BORROWED_POSTHOG_CREDENTIAL_DETAIL, BorrowedCredentialRefused, is_posthog_connection
 from .models import MCPAuditEvent, MCPGatewayServer, MCPServerInstallation, MCPServerInstallationTool
@@ -772,7 +771,7 @@ def _stream_upstream(upstream_response: httpx.Response, client: httpx.Client) ->
 
 def _build_sse_response(upstream_response: httpx.Response, client: httpx.Client) -> HttpResponseBase:
     stream = _stream_upstream(upstream_response, client)
-    astream = SyncIterableToAsync(stream) if SERVER_GATEWAY_INTERFACE == "ASGI" else stream
+    astream = iterate_in_threadpool(stream) if SERVER_GATEWAY_INTERFACE == "ASGI" else stream
     response = sse_streaming_response(astream, endpoint="mcp_store_proxy")
 
     if not isinstance(response, StreamingHttpResponse):

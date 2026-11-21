@@ -7,6 +7,7 @@ import pytest
 from posthog.test.base import APIBaseTest, QueryMatchingTest, snapshot_postgres_queries
 from unittest.mock import Mock, patch
 
+from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 
@@ -97,6 +98,7 @@ class TestPreflight(APIBaseTest, QueryMatchingTest):
             "db": True,
             "initiated": True,
             "cloud": False,
+            **({"foss_multi_project": True} if not settings.EE_AVAILABLE and not options.get("cloud") else {}),
             "is_test": True,
             "data_warehouse_integrations": {"hubspot": {"client_id": ""}, "salesforce": {"client_id": ""}},
             "demo": False,
@@ -142,6 +144,15 @@ class TestPreflight(APIBaseTest, QueryMatchingTest):
         }
 
         return self.preflight_dict(preflight)
+
+    @override_settings(
+        CLOUD_DEPLOYMENT=None, EE_AVAILABLE=False, DEBUG=False, E2E_TESTING=False, MULTI_ORG_ENABLED=False
+    )
+    def test_foss_projects_can_be_created_in_an_existing_single_organization(self) -> None:
+        response = self.client.get("/_preflight/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.json()["foss_multi_project"])
+        self.assertFalse(response.json()["can_create_org"])
 
     def test_preflight_request_unauthenticated(self):
         """

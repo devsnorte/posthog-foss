@@ -23,10 +23,6 @@ from temporalio.client import (
 from posthog.cloud_utils import is_cloud
 from posthog.scheduling.jitter import deterministic_offset
 from posthog.slo.types import SloArea, SloConfig, SloOperation
-from posthog.temporal.ai.checkpoint_compaction.schedule import (
-    create_checkpoint_compaction_schedule,
-    should_register_checkpoint_compaction_schedule,
-)
 from posthog.temporal.ai_observability.eval_reports.schedule import (
     create_count_trigger_schedule,
     create_eval_reports_schedule,
@@ -59,10 +55,6 @@ from posthog.temporal.ingestion_acceptance_test.schedule import create_ingestion
 from posthog.temporal.logs_alerting.schedule import create_logs_alert_check_schedule
 from posthog.temporal.mcp_analytics.intent_clustering.schedule import create_intent_clustering_coordinator_schedule
 from posthog.temporal.quota_limiting.run_quota_limiting import RunQuotaLimitingInputs
-from posthog.temporal.salesforce_enrichment.conversations_slack_workflow import ConversationsSlackEnrichmentInputs
-from posthog.temporal.salesforce_enrichment.stripe_workflow import StripeEnrichmentInputs
-from posthog.temporal.salesforce_enrichment.usage_workflow import UsageEnrichmentInputs
-from posthog.temporal.salesforce_enrichment.workflow import SalesforceEnrichmentInputs
 from posthog.temporal.session_replay.delete_recordings.types import PurgeDeletedMetadataInput
 from posthog.temporal.session_replay.enforce_max_replay_retention.types import EnforceMaxReplayRetentionInput
 from posthog.temporal.session_replay.replay_count_metrics.types import ReplayCountMetricsInput
@@ -80,7 +72,17 @@ from products.product_analytics.backend.facade.temporal import UpgradeQueriesWor
 from products.web_analytics.backend.temporal.digest_notification.types import WADigestNotificationInput
 from products.web_analytics.backend.temporal.weekly_digest.types import WAWeeklyDigestInput
 
-from ee.billing.salesforce_enrichment.constants import DEFAULT_CHUNK_SIZE
+if settings.EE_AVAILABLE:
+    from ee.billing.salesforce_enrichment.constants import DEFAULT_CHUNK_SIZE
+
+    from posthog.temporal.ai.checkpoint_compaction.schedule import (
+        create_checkpoint_compaction_schedule,
+        should_register_checkpoint_compaction_schedule,
+    )
+    from posthog.temporal.salesforce_enrichment.conversations_slack_workflow import ConversationsSlackEnrichmentInputs
+    from posthog.temporal.salesforce_enrichment.stripe_workflow import StripeEnrichmentInputs
+    from posthog.temporal.salesforce_enrichment.usage_workflow import UsageEnrichmentInputs
+    from posthog.temporal.salesforce_enrichment.workflow import SalesforceEnrichmentInputs
 
 logger = structlog.get_logger(__name__)
 
@@ -911,7 +913,7 @@ if settings.CLOUD_DEPLOYMENT:
     schedules.append(create_finalize_usage_reports_schedule)
     schedules.append(create_reconcile_organization_active_state_schedule)
     schedules.append(create_entitlement_repair_schedule)
-    if should_register_checkpoint_compaction_schedule():
+    if settings.EE_AVAILABLE and should_register_checkpoint_compaction_schedule():
         schedules.append(create_checkpoint_compaction_schedule)
 
 if settings.EE_AVAILABLE:

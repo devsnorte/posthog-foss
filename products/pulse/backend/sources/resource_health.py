@@ -17,7 +17,7 @@ from products.pulse.backend.config import MAX_ITEMS_PER_DETECTOR, STUCK_REFRESH_
 from products.pulse.backend.models import BriefConfig
 from products.pulse.backend.sources.base import EvidenceRef, EvidenceType, SourceItem, SourceItemKind
 from products.pulse.backend.urls import insight_url, subscription_url
-from products.subscriptions.backend.facade.api import failed_delivery_counts
+from products.subscriptions.backend.facade.resource_subscriptions import failed_delivery_counts
 
 logger = structlog.get_logger(__name__)
 

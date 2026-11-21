@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.db.models import Count, Sum
 from django.db.models.functions import Length
@@ -47,6 +48,8 @@ class ConversationAdmin(admin.ModelAdmin):
             total=Count("id"), namespaces=Count("checkpoint_ns", distinct=True)
         )
         blobs = conversation.blobs.aggregate(count=Count("id"), total_bytes=Sum(Length("blob")))
+        if not settings.EE_AVAILABLE:
+            return f"{checkpoints['total']} checkpoints across {checkpoints['namespaces']} namespace(s), {blobs['count'] or 0} blobs ({filesizeformat(blobs['total_bytes'] or 0)})"
         compact_url = reverse("admin_console_tool_operation", kwargs={"tool_key": TOOL_KEY, "operation_key": "compact"})
         return format_html(
             '{} checkpoints across {} namespace(s), {} blobs ({}) &nbsp;<a href="{}?conversation={}">'

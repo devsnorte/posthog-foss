@@ -836,8 +836,6 @@ class OrganizationViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
         return get_object_or_404(queryset, **filter_kwargs)
 
     def perform_destroy(self, organization: Organization):
-        from ee.billing.billing_manager import BillingManager
-
         # Check if bulk deletion operations are disabled via environment variable
         # Organizations contain teams, so we need to block organization deletion too
         if settings.DISABLE_BULK_DELETES:
@@ -849,6 +847,8 @@ class OrganizationViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
         if is_cloud():
             license = get_cached_instance_license()
             if license:
+                from ee.billing.billing_manager import BillingManager
+
                 billing_manager = BillingManager(license)
                 billing = billing_manager.get_billing(organization)
                 if billing.get("has_active_subscription"):

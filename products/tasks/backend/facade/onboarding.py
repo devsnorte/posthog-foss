@@ -43,7 +43,12 @@ from products.tasks.backend.models import Task, TaskClientProvenance
 from products.tasks.backend.task_profiles import USER
 from products.tasks.backend.task_sources import idempotency_key_q
 
-from ee.billing.salesforce_enrichment.constants import PERSONAL_EMAIL_DOMAINS
+if settings.EE_AVAILABLE:
+    from ee.billing.salesforce_enrichment.constants import PERSONAL_EMAIL_DOMAINS
+else:
+    from free_email_domains import whitelist as _mailbox_domains
+
+    PERSONAL_EMAIL_DOMAINS = frozenset(_mailbox_domains) | {"proton.me"}
 
 logger = structlog.get_logger(__name__)
 

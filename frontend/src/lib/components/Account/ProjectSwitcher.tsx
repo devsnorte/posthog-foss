@@ -40,7 +40,8 @@ export function ProjectSwitcher({ dialog = true }: { dialog?: boolean }): JSX.El
     const inputRef = useRef<HTMLInputElement>(null!)
     const createItem = filteredItems.find((p): p is CreateProjectItem => p.type === 'create')
 
-    const canCreateProject = preflight?.can_create_org !== false && !projectCreationForbiddenReason
+    const canCreateProject =
+        (preflight?.foss_multi_project || preflight?.can_create_org !== false) && !projectCreationForbiddenReason
 
     const handleItemClick = useCallback(
         (item: ListItem) => {

@@ -7,8 +7,6 @@ from posthog.models.organization import Organization, OrganizationMembership
 
 from products.access_control.backend.models.access_control import AccessControl
 
-from ee.models.explicit_team_membership import ExplicitTeamMembership
-
 logger = structlog.get_logger(__name__)
 
 
@@ -26,6 +24,8 @@ def rbac_team_access_control_migration(organization_id: int):
                     # Skip if access control is already disabled
                     if not team.access_control:
                         continue
+
+                    from ee.models.explicit_team_membership import ExplicitTeamMembership
 
                     # Create access control for the team
                     AccessControl.objects.create(
@@ -47,6 +47,8 @@ def rbac_team_access_control_migration(organization_id: int):
                     )
                     for team_membership in team_memberships:
                         try:
+                            from ee.models.explicit_team_membership import ExplicitTeamMembership
+
                             # Create access control for the team member
                             AccessControl.objects.create(
                                 team=team,
