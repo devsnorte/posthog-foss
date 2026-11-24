@@ -33,7 +33,8 @@ publish_outcome() {
     fi
 }
 report_migration_metric() {
-    if [ -n "${PROM_PUSHGATEWAY_ADDRESS:-}" ]; then
+    # A custom settings module can supply the gateway without an environment variable.
+    if [ -n "${PROM_PUSHGATEWAY_ADDRESS:-}" ] || [ "${DJANGO_SETTINGS_MODULE:-posthog.settings}" != "posthog.settings" ]; then
         local duration
         duration=$(python3 -c "print($MIGRATE_END_TIME - $MIGRATE_START_TIME)")
         python manage.py report_migration_metric --attempts="$MIGRATE_ATTEMPT" --duration="$duration" "$@" || true

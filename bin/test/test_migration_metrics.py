@@ -21,16 +21,20 @@ class TestMigrationMetrics(unittest.TestCase):
                 "esac\n"
             )
             python.chmod(0o755)
-            for address in (None, "", "gateway:9091"):
+            for settings, expect_report in [
+                ({}, False),
+                ({"PROM_PUSHGATEWAY_ADDRESS": ""}, False),
+                ({"PROM_PUSHGATEWAY_ADDRESS": "gateway:9091"}, True),
+                ({"DJANGO_SETTINGS_MODULE": "custom.settings"}, True),
+            ]:
                 for code in (0, 1):
-                    with self.subTest(address=address, code=code):
+                    with self.subTest(settings=settings, code=code):
                         env = {
                             "PATH": tmp + os.pathsep + os.defpath,
                             "MIGRATE_CODE": str(code),
                             "MIGRATE_MAX_RETRIES": "1",
+                            **settings,
                         }
-                        if address is not None:
-                            env["PROM_PUSHGATEWAY_ADDRESS"] = address
                         result = subprocess.run([MIGRATE, "--scope=postgres"], env=env, capture_output=True, text=True)
                         self.assertEqual(result.returncode, code, result.stderr)
                         reports = [
@@ -38,7 +42,7 @@ class TestMigrationMetrics(unittest.TestCase):
                             for line in result.stdout.splitlines()
                             if line.startswith("manage.py report_migration_metric ")
                         ]
-                        self.assertEqual(len(reports), int(bool(address)))
+                        self.assertEqual(len(reports), int(expect_report))
                         if reports:
                             args = reports[0].split()
                             self.assertIn("--attempts=1", args)
