@@ -32,6 +32,13 @@ publish_outcome() {
         python3 "$SCRIPT_DIR/report-migration-outcome" "$1" || true
     fi
 }
+report_migration_metric() {
+    if [ -n "${PROM_PUSHGATEWAY_ADDRESS:-}" ]; then
+        local duration
+        duration=$(python3 -c "print($MIGRATE_END_TIME - $MIGRATE_START_TIME)")
+        python manage.py report_migration_metric --attempts="$MIGRATE_ATTEMPT" --duration="$duration" "$@" || true
+    fi
+}
 report_outcome() {
     local status=$?
     if [ "$status" -eq 0 ]; then
@@ -168,15 +175,14 @@ if [ "$RUN_POSTGRES" = "1" ]; then
     done
     
     MIGRATE_END_TIME=$(timestamp)
-    MIGRATE_DURATION=$(python3 -c "print($MIGRATE_END_TIME - $MIGRATE_START_TIME)")
     
     # Report migration metrics to pushgateway (if configured)
     if [ "$MIGRATE_SUCCESS" = "true" ]; then
         FAILED_PHASE=unknown
-        python manage.py report_migration_metric --attempts=$MIGRATE_ATTEMPT --duration=$MIGRATE_DURATION --success || true
+        report_migration_metric --success
     else
         publish_outcome "$FAILED_PHASE"
-        python manage.py report_migration_metric --attempts=$MIGRATE_ATTEMPT --duration=$MIGRATE_DURATION || true
+        report_migration_metric
         echo "Error in $FAILED_PHASE migrations, killing background process and exiting."
         [ -n "$CLICKHOUSE_PID" ] && kill "$CLICKHOUSE_PID" 2>/dev/null || true
         exit 1
