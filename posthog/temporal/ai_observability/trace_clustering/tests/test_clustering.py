@@ -118,12 +118,14 @@ class TestCalculateTraceDistances:
         assert distances[0, 0] == pytest.approx(0, abs=1e-10)
         assert distances[1, 1] == pytest.approx(0, abs=1e-10)
 
-    def test_euclidean_distance_calculation(self):
-        embeddings = np.array([[0, 0, 0], [3, 4, 0]])
-        centroids = np.array([[0, 0, 0]])
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_euclidean_distance_calculation(self, dtype):
+        embeddings = np.array([[0, 0, 0], [3, 4, 0]], dtype=dtype)
+        centroids = np.array([[0, 0, 0]], dtype=dtype)
 
         distances = calculate_trace_distances(embeddings, centroids)
 
+        assert distances.dtype == dtype
         assert distances[0, 0] == pytest.approx(0, abs=1e-10)
         assert distances[1, 0] == pytest.approx(5.0, abs=1e-10)  # 3-4-5 triangle
 
@@ -262,7 +264,7 @@ class TestCalculateDistancesToClusterMeans:
 
         distances = calculate_distances_to_cluster_means(embeddings, labels, centroids)
 
-        assert distances.shape == (10, 3)
+        np.testing.assert_allclose(distances, np.linalg.norm(embeddings[:, None] - centroids, axis=2))
 
     def test_handles_empty_centroids(self):
         embeddings = np.random.randn(5, 10)
