@@ -675,6 +675,13 @@ pub async fn serve_with_rate_limiter_clock<C>(
     }
 }
 
+fn redis_retry_delays(retry_count: u32) -> impl Iterator<Item = Duration> {
+    // tokio-retry raises the base to the attempt number, so 50 × 2¹ starts at 100 ms.
+    ExponentialBackoff::from_millis(2)
+        .factor(50)
+        .take(retry_count as usize)
+}
+
 /// Create a ReadWriteClient that automatically routes reads to replica and writes to primary
 ///
 /// Returns None and logs error if client creation fails after all retries
@@ -704,10 +711,7 @@ async fn create_readwrite_client(
         },
     );
 
-    // Use exponential backoff with jitter: 100ms, 200ms, 400ms, etc.
-    let retry_strategy = ExponentialBackoff::from_millis(100)
-        .map(jitter)
-        .take(retry_count as usize);
+    let retry_strategy = redis_retry_delays(retry_count).map(jitter);
 
     let client_type_owned = client_type.to_string();
 
@@ -895,11 +899,7 @@ pub async fn create_redis_client(
     connection_timeout_ms: u64,
     retry_count: u32,
 ) -> Option<Arc<RedisClient>> {
-    // Use exponential backoff with jitter: 100ms, 200ms, 400ms, etc.
-    // When retry_count=0, .take(0) means no retries (only initial attempt)
-    let retry_strategy = ExponentialBackoff::from_millis(100)
-        .map(jitter)
-        .take(retry_count as usize);
+    let retry_strategy = redis_retry_delays(retry_count).map(jitter);
 
     let url_owned = url.to_string();
     let client_type_owned = client_type.to_string();
@@ -975,6 +975,15 @@ mod tests {
     use common_redis::MockRedisClient;
     use lifecycle::LifecycleError;
     use rstest::rstest;
+
+    #[test]
+    fn redis_startup_retry_delays_double_from_100ms() {
+        assert!(redis_retry_delays(0).next().is_none());
+        assert_eq!(
+            redis_retry_delays(3).collect::<Vec<_>>(),
+            [100, 200, 400].map(Duration::from_millis)
+        );
+    }
 
     /// Locks in the contract that drives the early-return paths in `serve()`:
     /// `fail_init` must surface a `ComponentFailure { tag: "http-server", reason }` —
