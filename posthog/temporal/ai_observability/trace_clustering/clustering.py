@@ -101,9 +101,13 @@ def calculate_trace_distances(
     Returns:
         Distance matrix of shape (n_samples, n_clusters)
     """
-    # Shape: (n_samples, n_clusters)
-    # broadcasting: (n_samples, 1, n_features) - (1, n_clusters, n_features)
-    return np.sqrt(((embeddings[:, np.newaxis, :] - centroids[np.newaxis, :, :]) ** 2).sum(axis=2))
+    from scipy.spatial.distance import cdist  # noqa: PLC0415
+
+    distances = cdist(embeddings, centroids, metric="euclidean")
+    dtype = np.result_type(embeddings, centroids)
+    if np.issubdtype(dtype, np.floating):
+        return distances.astype(dtype, copy=False)
+    return distances
 
 
 def compute_2d_coordinates(
@@ -363,4 +367,4 @@ def calculate_distances_to_cluster_means(
     if len(centroids) == 0:
         return np.zeros((len(embeddings), 0))
 
-    return np.sqrt(((embeddings[:, np.newaxis, :] - centroids[np.newaxis, :, :]) ** 2).sum(axis=2))
+    return calculate_trace_distances(embeddings, centroids)
