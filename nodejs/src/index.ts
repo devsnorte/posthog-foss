@@ -9,93 +9,108 @@ import { initMetrics } from '~/common/metrics/otel-metrics'
 import { initTracing } from '~/common/tracing/otel'
 import { initSuperProperties } from '~/common/utils/posthog'
 import { getDefaultIngestionConsumerConfig } from '~/ingestion/config'
-import { PluginServer } from '~/server'
-import {
-    AiResearchV4ImageFetchRetryServer,
-    AiResearchV4ImageFetchServer,
-} from '~/servers/ai-research-v4-image-fetch-server'
-import { NodeServer } from '~/servers/base-server'
-import { ErrorTrackingServer } from '~/servers/error-tracking-server'
-import { IngestionApiServer } from '~/servers/ingestion-api-server'
-import { IngestionGeneralServer } from '~/servers/ingestion-general-server'
-import { IngestionLogsServer } from '~/servers/ingestion-logs-server'
-import { IngestionMetricsServer } from '~/servers/ingestion-metrics-server'
-import { IngestionSessionReplayMlImageFetchRetryServer } from '~/servers/ingestion-session-replay-ml-image-fetch-retry-server'
-import { IngestionSessionReplayMlImageFetchServer } from '~/servers/ingestion-session-replay-ml-image-fetch-server'
-import { IngestionSessionReplayMlImageScrubDlqReplayServer } from '~/servers/ingestion-session-replay-ml-image-scrub-dlq-replay-server'
-import { IngestionSessionReplayMlImageScrubServer } from '~/servers/ingestion-session-replay-ml-image-scrub-server'
-import { IngestionSessionReplayMlMirrorServer } from '~/servers/ingestion-session-replay-ml-mirror-server'
-import { IngestionSessionReplayMlParquetSinkServer } from '~/servers/ingestion-session-replay-ml-parquet-sink-server'
-import { IngestionSessionReplayServer } from '~/servers/ingestion-session-replay-server'
-import { IngestionTracesServer } from '~/servers/ingestion-traces-server'
-import { PushApiServer } from '~/servers/push-api-server'
-import { RecordingApiServer } from '~/servers/recording-api-server'
+import type { NodeServer } from '~/servers/base-server'
 
-function createServer(): NodeServer {
+async function createServer(): Promise<NodeServer> {
     const { PLUGIN_SERVER_EVENTS_INGESTION_PIPELINE } = overrideConfigWithEnv(getDefaultIngestionConsumerConfig())
     initSuperProperties(PLUGIN_SERVER_EVENTS_INGESTION_PIPELINE)
 
     switch (defaultConfig.PLUGIN_SERVER_MODE) {
         case PluginServerMode.ingestion_v2:
-        case PluginServerMode.ingestion_v2_combined:
+        case PluginServerMode.ingestion_v2_combined: {
+            const { IngestionGeneralServer } = await import('./servers/ingestion-general-server.js')
             return new IngestionGeneralServer()
+        }
 
-        case PluginServerMode.ingestion_api:
+        case PluginServerMode.ingestion_api: {
+            const { IngestionApiServer } = await import('./servers/ingestion-api-server.js')
             return new IngestionApiServer()
+        }
 
         case PluginServerMode.recordings_blob_ingestion_v2:
-        case PluginServerMode.recordings_blob_ingestion_v2_overflow:
+        case PluginServerMode.recordings_blob_ingestion_v2_overflow: {
+            const { IngestionSessionReplayServer } = await import('./servers/ingestion-session-replay-server.js')
             return new IngestionSessionReplayServer()
+        }
 
-        case PluginServerMode.recordings_blob_ingestion_v2_ml_mirror:
+        case PluginServerMode.recordings_blob_ingestion_v2_ml_mirror: {
+            const { IngestionSessionReplayMlMirrorServer } = await import('./servers/ingestion-session-replay-ml-mirror-server.js')
             return new IngestionSessionReplayMlMirrorServer()
+        }
 
-        case PluginServerMode.recordings_blob_ingestion_v2_ml_parquet_sink:
+        case PluginServerMode.recordings_blob_ingestion_v2_ml_parquet_sink: {
+            const { IngestionSessionReplayMlParquetSinkServer } = await import('./servers/ingestion-session-replay-ml-parquet-sink-server.js')
             return new IngestionSessionReplayMlParquetSinkServer()
+        }
 
-        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_scrub:
+        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_scrub: {
+            const { IngestionSessionReplayMlImageScrubServer } = await import('./servers/ingestion-session-replay-ml-image-scrub-server.js')
             return new IngestionSessionReplayMlImageScrubServer()
+        }
 
-        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_scrub_dlq_replay:
+        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_scrub_dlq_replay: {
+            const { IngestionSessionReplayMlImageScrubDlqReplayServer } = await import('./servers/ingestion-session-replay-ml-image-scrub-dlq-replay-server.js')
             return new IngestionSessionReplayMlImageScrubDlqReplayServer()
+        }
 
-        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_fetch:
+        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_fetch: {
+            const { IngestionSessionReplayMlImageFetchServer } = await import('./servers/ingestion-session-replay-ml-image-fetch-server.js')
             return new IngestionSessionReplayMlImageFetchServer()
+        }
 
-        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_fetch_retry:
+        case PluginServerMode.recordings_blob_ingestion_v2_ml_image_fetch_retry: {
+            const { IngestionSessionReplayMlImageFetchRetryServer } = await import('./servers/ingestion-session-replay-ml-image-fetch-retry-server.js')
             return new IngestionSessionReplayMlImageFetchRetryServer()
+        }
 
-        case PluginServerMode.ai_research_v4_image_fetch:
+        case PluginServerMode.ai_research_v4_image_fetch: {
+            const { AiResearchV4ImageFetchServer } = await import('./servers/ai-research-v4-image-fetch-server.js')
             return new AiResearchV4ImageFetchServer()
+        }
 
-        case PluginServerMode.ai_research_v4_image_fetch_retry:
+        case PluginServerMode.ai_research_v4_image_fetch_retry: {
+            const { AiResearchV4ImageFetchRetryServer } = await import('./servers/ai-research-v4-image-fetch-server.js')
             return new AiResearchV4ImageFetchRetryServer()
+        }
 
-        case PluginServerMode.recording_api:
+        case PluginServerMode.recording_api: {
+            const { RecordingApiServer } = await import('./servers/recording-api-server.js')
             return new RecordingApiServer()
+        }
 
-        case PluginServerMode.ingestion_error_tracking:
+        case PluginServerMode.ingestion_error_tracking: {
+            const { ErrorTrackingServer } = await import('./servers/error-tracking-server.js')
             return new ErrorTrackingServer()
+        }
 
-        case PluginServerMode.ingestion_logs:
+        case PluginServerMode.ingestion_logs: {
+            const { IngestionLogsServer } = await import('./servers/ingestion-logs-server.js')
             return new IngestionLogsServer()
+        }
 
-        case PluginServerMode.ingestion_metrics:
+        case PluginServerMode.ingestion_metrics: {
+            const { IngestionMetricsServer } = await import('./servers/ingestion-metrics-server.js')
             return new IngestionMetricsServer()
+        }
 
-        case PluginServerMode.ingestion_traces:
+        case PluginServerMode.ingestion_traces: {
+            const { IngestionTracesServer } = await import('./servers/ingestion-traces-server.js')
             return new IngestionTracesServer()
+        }
 
-        case PluginServerMode.push_api:
+        case PluginServerMode.push_api: {
+            const { PushApiServer } = await import('./servers/push-api-server.js')
             return new PushApiServer()
+        }
 
-        default:
+        default: {
             // CDP modes, evaluation scheduler, local dev (null), local-cdp
+            const { PluginServer } = await import('./server.js')
             return new PluginServer()
+        }
     }
 }
 
 initTracing()
 initMetrics()
-const server = createServer()
-void server.start()
+void createServer().then((server) => server.start())

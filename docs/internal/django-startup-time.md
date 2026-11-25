@@ -4,6 +4,8 @@
 Heavy imports dragged onto that path are paid by all of them.
 This doc explains how we keep heavy subsystems off the startup path, the guard that enforces it, how to add code without regressing it, and the traps that have repeatedly caused follow-up fixes.
 
+The web startup script runs the PostgreSQL, ClickHouse, and async migration checks through one Django process. Run `./bin/migrate-check` to exercise the same checks locally.
+
 ## The shape of the problem
 
 The cost is almost entirely _module imports_, not runtime work.
