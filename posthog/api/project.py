@@ -2397,11 +2397,11 @@ class PremiumMultiProjectPermission(BasePermission):
             projects_feature = organization.get_available_feature(AvailableFeature.ORGANIZATIONS_PROJECTS)
             allowed_project_count = projects_feature.get("limit") if projects_feature else 1
 
-        current_non_demo_project_count = organization.teams.exclude(is_demo=True).distinct("project_id").count()
+        non_demo_projects = organization.teams.exclude(is_demo=True).distinct("project_id")
         if allowed_project_count is not None:
-            return current_non_demo_project_count < allowed_project_count
+            return non_demo_projects.count() < allowed_project_count
 
-        if view.action == "create" and current_non_demo_project_count >= MAX_ALLOWED_PROJECTS_PER_ORG:
+        if view.action == "create" and non_demo_projects.count() >= MAX_ALLOWED_PROJECTS_PER_ORG:
             self.message = f"You have reached the maximum limit of {MAX_ALLOWED_PROJECTS_PER_ORG} projects per organization. Contact support if you'd like access to more projects."
             return False
         return True
