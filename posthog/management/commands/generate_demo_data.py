@@ -30,7 +30,8 @@ from products.demo.backend.facade.api import (
     seed_dev_dashboard_templates,
 )
 
-from ee.clickhouse.materialized_columns.analyze import materialize_properties_task
+if settings.EE_AVAILABLE:
+    from ee.clickhouse.materialized_columns.analyze import materialize_properties_task
 
 logging.getLogger("kafka").setLevel(logging.ERROR)  # Hide kafka-python's logspam
 
@@ -318,6 +319,8 @@ class Command(BaseCommand):
         print("\n".join(summary_lines))
 
     def materialize_common_columns(self, backfill_days: int) -> None:
+        if not settings.EE_AVAILABLE:
+            return
         event_properties = {
             *PERSON_PROPERTIES_ADAPTED_FROM_EVENT,
             "$prev_pageview_pathname",

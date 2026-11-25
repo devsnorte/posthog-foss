@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.uuidt
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -13,7 +14,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("ee", "0066_remove_dashboardprivilege"),
+        access_schema_dependency("0066_remove_dashboardprivilege"),
         ("event_definitions", "0014_drop_taxonomy_project_id_fk_idx"),
         ("posthog", "1406_file_system_team_text_trgm_index"),
     ]

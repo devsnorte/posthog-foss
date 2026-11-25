@@ -42,7 +42,7 @@ from posthog.dataclasses import frozen
 from posthog.exceptions_capture import capture_exception
 from posthog.models.user import User
 
-from products.ai_observability.backend.facade.api import mentions_evaluation_pass_markers
+from products.ai_observability.backend.facade.evaluation_markers import mentions_evaluation_pass_markers
 from products.experiments.backend.facade.contracts import ExperimentHealthMetricCompileErrorKind
 from products.experiments.backend.health.context import MetricCompileFailure, MetricCompiles
 from products.experiments.backend.hogql_queries.error_handling import get_user_friendly_message

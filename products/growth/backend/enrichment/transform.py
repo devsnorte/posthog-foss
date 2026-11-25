@@ -1,15 +1,41 @@
-"""Transform a Harmonic company response into the enrichment field registry.
-
-Tag/YC/safe-cast heuristics are shared with the Salesforce enrichment transforms in
-ee/billing/salesforce_enrichment/enrichment.py and imported from there rather than copied.
-"""
+"""Transform a Harmonic company response into the enrichment field registry."""
 
 from typing import Any, Optional
+
+from django.conf import settings
 
 from products.growth.backend.enrichment.countries import country_name_to_iso_code
 from products.growth.backend.enrichment.fields import EnrichmentFields
 
-from ee.billing.salesforce_enrichment.enrichment import _extract_primary_tag, _is_yc_funded, _safe_dict, _safe_list
+if settings.EE_AVAILABLE:
+    from ee.billing.salesforce_enrichment.enrichment import _extract_primary_tag, _is_yc_funded, _safe_dict, _safe_list
+else:
+
+    def _safe_dict(value: Any) -> dict:
+        return value if isinstance(value, dict) else {}
+
+    def _safe_list(value: Any) -> list:
+        return value if isinstance(value, list) else []
+
+    def _extract_primary_tag(tags: list, tags_v2: list) -> str | None:
+        for tag in tags:
+            if _safe_dict(tag).get("isPrimaryTag") and isinstance(name := tag.get("displayValue"), str) and name:
+                return name
+        for tag in tags_v2:
+            if (
+                _safe_dict(tag).get("type") == "MARKET_VERTICAL"
+                and isinstance(name := tag.get("displayValue"), str)
+                and name
+            ):
+                return name
+        return None
+
+    def _is_yc_funded(investors: Any) -> bool:
+        if not isinstance(investors, list):
+            return False
+        return any(
+            str(_safe_dict(investor).get("name", "")).strip().casefold() == "y combinator" for investor in investors
+        )
 
 
 def _latest_metric(traction: dict[str, Any], metric: str) -> Optional[int]:

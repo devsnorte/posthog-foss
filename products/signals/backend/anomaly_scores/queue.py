@@ -81,9 +81,7 @@ from products.signals.backend.anomaly_scores.spend import CpuSpendReport, cpu_ga
 from products.signals.backend.anomaly_scores.state import RunPlan, load_states, plan_run, score_ready_by_insight
 from products.signals.backend.contracts import ALERT_SCOPE_SOURCE
 from products.signals.backend.models import AnomalyScoringDueInsight, SignalSourceConfig, SignalTeamConfig
-from products.subscriptions.backend.facade.api import insight_ids_with_active_subscriptions
-
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, list_limited_team_attributes
+from products.subscriptions.backend.facade.resource_subscriptions import insight_ids_with_active_subscriptions
 
 logger = structlog.get_logger(__name__)
 
@@ -343,6 +341,8 @@ def eligible_teams(config: AnomalyScoringConfig) -> list[Team]:
         )
     if not enrolled:
         return []
+    from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, list_limited_team_attributes
+
     # Capture drops every event of a project over its event quota, so scoring it wastes the query.
     limited = set(list_limited_team_attributes(QuotaResource.EVENTS, QuotaLimitingCaches.QUOTA_LIMITER_CACHE_KEY))
     return [team for team in Team.objects.filter(id__in=enrolled) if team.api_token not in limited]

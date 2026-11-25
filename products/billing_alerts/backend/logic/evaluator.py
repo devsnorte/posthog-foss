@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from time import perf_counter
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
 from django.utils import timezone
 
 from posthog.cloud_utils import get_cached_instance_license
@@ -13,7 +14,8 @@ from posthog.models import Organization
 
 from products.billing_alerts.backend.models import BillingAlertConfiguration
 
-from ee.billing.billing_manager import BillingManager
+if TYPE_CHECKING or settings.EE_AVAILABLE:
+    from ee.billing.billing_manager import BillingManager
 
 # Billing period totals the evaluator reads for each supported metric. Both are
 # after-discount amounts so alerts fire on what the customer actually owes.
@@ -88,6 +90,8 @@ def fetch_billing_data(
     manager: BillingManager | None = None,
     now: datetime | None = None,
 ) -> tuple[dict[str, Any], int]:
+    if manager is None and not settings.EE_AVAILABLE:
+        raise BillingAlertEvaluationError("Billing data is unavailable on this installation")
     manager = manager or BillingManager(get_cached_instance_license())
     start = perf_counter()
     response = manager.get_billing_status_for_alerts(organization)

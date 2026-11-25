@@ -67,8 +67,7 @@ from products.tasks.backend.temporal.process_task.utils import (
     is_slack_interaction_state,
 )
 from products.tasks.backend.turn_completed import dispatch_turn_completed
-
-from ee.hogai.sandbox import (
+from products.tasks.backend.turn_events import (
     PI_RUNTIME_ERROR_MESSAGE,
     is_background_turn_complete,
     is_idle_resume_turn_complete,

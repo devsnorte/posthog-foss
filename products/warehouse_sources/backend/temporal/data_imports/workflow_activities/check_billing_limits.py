@@ -2,6 +2,7 @@ import typing
 import dataclasses
 from datetime import UTC, datetime
 
+from django.conf import settings
 from django.db import close_old_connections
 
 import redis
@@ -19,7 +20,8 @@ from products.warehouse_sources.backend.models.external_data_job import External
 from products.warehouse_sources.backend.models.external_data_source import ExternalDataSource
 from products.warehouse_sources.backend.temporal.data_imports.util import with_internal_db_retries
 
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, is_team_limited
 
 LOGGER = get_logger(__name__)
 
@@ -49,6 +51,8 @@ class CheckBillingLimitsActivityInputs:
     reraise=True,
 )
 def _team_is_rows_synced_limited(api_token: str) -> bool:
+    if not settings.EE_AVAILABLE:
+        return True
     return is_team_limited(api_token, QuotaResource.ROWS_SYNCED, QuotaLimitingCaches.QUOTA_LIMITER_CACHE_KEY)
 
 

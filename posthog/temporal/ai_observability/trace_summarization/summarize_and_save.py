@@ -4,6 +4,8 @@ import time
 from dataclasses import dataclass
 from uuid import uuid4
 
+from django.conf import settings
+
 import structlog
 import temporalio
 
@@ -24,8 +26,9 @@ from products.ai_observability.backend.summarization.llm import summarize
 from products.ai_observability.backend.summarization.llm.schema import SummarizationResponse
 from products.ai_observability.backend.summarization.models import OpenAIModel, SummarizationMode
 
-from ee.hogai.llm_traces_summaries.constants import LLM_TRACES_SUMMARIES_DOCUMENT_TYPE, LLM_TRACES_SUMMARIES_PRODUCT
-from ee.hogai.llm_traces_summaries.tools.embed_summaries import LLMTracesSummarizerEmbedder
+if settings.EE_AVAILABLE:
+    from ee.hogai.llm_traces_summaries.constants import LLM_TRACES_SUMMARIES_DOCUMENT_TYPE, LLM_TRACES_SUMMARIES_PRODUCT
+    from ee.hogai.llm_traces_summaries.tools.embed_summaries import LLMTracesSummarizerEmbedder
 
 logger = structlog.get_logger(__name__)
 
@@ -264,6 +267,8 @@ async def summarize_and_save_activity(input: SummarizeAndSaveInput) -> Summariza
         embedding_request_error = None
         t0 = time.monotonic()
         try:
+            if not settings.EE_AVAILABLE:
+                raise RuntimeError("The trace embedding service is unavailable on this installation")
             if is_generation:
                 assert input.generation_id is not None
                 await on_asyncify_pool(_embed_generation_summary)(

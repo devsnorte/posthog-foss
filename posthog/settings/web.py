@@ -269,7 +269,7 @@ if DEBUG:
 try:
     from ee.apps import EnterpriseConfig  # noqa: F401
 except ImportError:
-    pass
+    INSTALLED_APPS.append("posthog.foss_access.apps.FossAccessConfig")
 else:
     INSTALLED_APPS.append("ee.apps.EnterpriseConfig")
 

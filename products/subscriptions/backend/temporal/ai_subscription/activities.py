@@ -2,7 +2,9 @@ import uuid
 import datetime as dt
 import dataclasses
 from datetime import datetime
+from typing import TYPE_CHECKING
 
+from django.conf import settings
 from django.utils import timezone as tz
 
 import dateutil.parser
@@ -32,7 +34,9 @@ from products.subscriptions.backend.temporal.ai_subscription.delivery import (
     send_email_ai_subscription_report,
     send_slack_ai_subscription_report,
 )
-from products.subscriptions.backend.temporal.ai_subscription.report_pipeline import AiReportResult
+
+if TYPE_CHECKING:
+    from products.subscriptions.backend.temporal.ai_subscription.report_pipeline import AiReportResult
 from products.subscriptions.backend.temporal.delivery_common import (
     auto_disable_and_return,
     deliver_email,
@@ -54,7 +58,8 @@ from products.subscriptions.backend.temporal.types import (
     RecipientResult,
 )
 
-from ee.billing.quota_limiting import is_team_over_ai_credit_budget
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import is_team_over_ai_credit_budget
 
 LOGGER = get_logger(__name__)
 
@@ -297,6 +302,8 @@ async def generate_ai_subscription_report(inputs: GenerateAIReportInputs) -> Gen
     # or they'd keep spending against an exhausted balance. Fail open: a transient quota-lookup
     # error shouldn't drop a deliverable report. The check reads Redis (not the DB), so
     # sync_to_async — but the reschedule below writes the row, so that stays database_sync_to_async.
+    if not settings.EE_AVAILABLE:
+        raise ApplicationError("The AI subscription provider is unavailable", non_retryable=True)
     try:
         over_credit_budget = await sync_to_async(is_team_over_ai_credit_budget, thread_sensitive=False)(
             subscription.team.api_token

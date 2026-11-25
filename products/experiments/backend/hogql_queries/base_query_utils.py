@@ -32,7 +32,7 @@ from posthog.models.team.team import Team
 
 from products.actions.backend.facade.api import get_action
 from products.actions.backend.facade.contracts import ActionNotFound
-from products.ai_observability.backend.facade.api import resolve_evaluation_pass_markers
+from products.ai_observability.backend.facade.evaluation_markers import resolve_evaluation_pass_markers
 from products.experiments.backend.hogql_queries.exposure_query_logic import rule_exposure_criteria_error
 from products.experiments.backend.hogql_queries.hogql_aggregation_utils import (
     contains_aggregation,

@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.models.utils
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -16,7 +17,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("posthog", "0879_migrate_error_tracking_models"),
-        ("ee", "0028_alter_conversation_type"),
+        access_schema_dependency("0028_alter_conversation_type"),
     ]
 
     database_operations: list[Any] = [

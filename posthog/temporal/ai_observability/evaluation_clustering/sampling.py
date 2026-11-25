@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
+from django.conf import settings
+
 import structlog
 from temporalio import activity
 
@@ -26,8 +28,9 @@ from posthog.temporal.ai_observability.evaluation_clustering.constants import (
 from posthog.temporal.ai_observability.evaluation_clustering.models import SamplerActivityInputs, SamplerActivityResult
 from posthog.temporal.common.heartbeat import Heartbeater
 
-from ee.hogai.llm_traces_summaries.constants import LLM_TRACES_SUMMARIES_PRODUCT
-from ee.hogai.llm_traces_summaries.tools.embed_summaries import LLMTracesSummarizerEmbedder
+if settings.EE_AVAILABLE:
+    from ee.hogai.llm_traces_summaries.constants import LLM_TRACES_SUMMARIES_PRODUCT
+    from ee.hogai.llm_traces_summaries.tools.embed_summaries import LLMTracesSummarizerEmbedder
 
 logger = structlog.get_logger(__name__)
 
@@ -104,6 +107,10 @@ def _parse_iso(ts: str) -> datetime:
 def _sample_and_embed_sync(inputs: SamplerActivityInputs) -> SamplerActivityResult:
     from products.ai_observability.backend.facade.clustering_runtime import require_current_job
 
+    if not settings.EE_AVAILABLE:
+        from temporalio.exceptions import ApplicationError
+
+        raise ApplicationError("The evaluation embedding service is unavailable", non_retryable=True)
     try:
         team = Team.objects.get(
             id=inputs.team_id, clustering_config__enabled=True, organization__is_ai_data_processing_approved=True

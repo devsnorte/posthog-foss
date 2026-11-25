@@ -12,7 +12,7 @@ from products.product_analytics.backend.facade.models import Insight
 from products.pulse.backend.generation.schemas import BriefOut, BriefSectionOut, OpportunityOut
 from products.pulse.backend.models import Opportunity, ProductBrief, ResourceLink, build_action
 from products.pulse.backend.sources.base import EvidenceRef, EvidenceType, SourceItem, build_evidence_index
-from products.subscriptions.backend.facade.api import subscription_ids_in_team
+from products.subscriptions.backend.facade.resource_subscriptions import subscription_ids_in_team
 
 logger = structlog.get_logger(__name__)
 

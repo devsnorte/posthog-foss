@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.uuidt
+from posthog.foss_access import access_schema_dependency
 
 import products.error_tracking.backend.models
 
@@ -41,7 +42,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("cohorts", "0014_alter_cohort_created_by_alter_cohort_people_and_more"),
-        ("ee", "0066_remove_dashboardprivilege"),
+        access_schema_dependency("0066_remove_dashboardprivilege"),
         ("posthog", "1406_file_system_team_text_trgm_index"),
     ]
 

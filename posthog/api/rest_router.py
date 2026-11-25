@@ -1,7 +1,11 @@
 from rest_framework import decorators, exceptions
 
-# Preload to work around circular imports in `ee.hogai.{core.agent_modes,chat_agent,tools}`.
-import posthog.temporal.ai  # noqa: F401
+from posthog.settings import EE_AVAILABLE
+
+if EE_AVAILABLE:
+    # Preload to work around circular imports in `ee.hogai.{core.agent_modes,chat_agent,tools}`.
+    import posthog.temporal.ai  # noqa: F401
+
 from posthog.api import (
     data_color_theme,
     data_deletion_request,
@@ -20,11 +24,7 @@ from posthog.api.routing import DefaultRouterPlusPlus, RouterRegistry
 from posthog.api.sdk_health import SdkHealthViewSet
 from posthog.api.wizard import http as wizard
 from posthog.products import load_product_modules
-from posthog.settings import EE_AVAILABLE
 from posthog.workload_identity.trust_policy import WorkloadTrustPolicyRequestViewSet, WorkloadTrustPolicyViewSet
-
-from ee.api.quota_limits import QuotaLimitsViewSet
-from ee.api.vercel import vercel_installation, vercel_product, vercel_proxy, vercel_resource
 
 from ..session_recordings.session_recording_api import SessionRecordingViewSet
 from ..session_recordings.session_recording_external_reference_api import SessionRecordingExternalReferenceViewSet
@@ -140,13 +140,6 @@ projects_router.register(
 
 # Seats (proxied to billing service)
 
-# Quota limits (project-scoped — backs the LLM gateway's QuotaResolver)
-projects_router.register(
-    r"quota_limits",
-    QuotaLimitsViewSet,
-    "project_quota_limits",
-    ["team_id"],
-)
 # Self-driving turns products ON (via the `products-enable` MCP tool) before enabling their
 # signal sources. Gated by the narrow `product_enablement` scope, never `project:write`.
 projects_router.register(
@@ -469,8 +462,11 @@ projects_router.register(
 projects_router.register(r"sessions", SessionViewSet, "project_sessions", ["team_id"])
 
 if EE_AVAILABLE:
+    from ee.api.quota_limits import QuotaLimitsViewSet
+    from ee.api.vercel import vercel_installation, vercel_product, vercel_proxy, vercel_resource
     from ee.clickhouse.views.person import EnterprisePersonViewSet, LegacyEnterprisePersonViewSet
 
+    projects_router.register(r"quota_limits", QuotaLimitsViewSet, "project_quota_limits", ["team_id"])
     projects_router.register(r"persons", EnterprisePersonViewSet, "project_persons", ["team_id"])
     router.register(r"person", LegacyEnterprisePersonViewSet, "persons")
     vercel_installations_router = router.register(

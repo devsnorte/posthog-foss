@@ -5,12 +5,13 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.models.utils
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
     dependencies = [
         ("conversations", "0012_backfill_ticket_message_stats"),
-        ("ee", "0014_roles_memberships_and_resource_access"),
+        access_schema_dependency("0014_roles_memberships_and_resource_access"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

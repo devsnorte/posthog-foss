@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, tzinfo
 from typing import Optional, Union
 
+from django.conf import settings
 from django.db.models import BigIntegerField, F, IntegerField, Q
 from django.db.models.functions import Coalesce
 
@@ -40,18 +41,6 @@ from products.event_definitions.backend.models import EventDefinition, EventProp
 from products.posthog_ai.backend.models.assistant import CoreMemory
 from products.subscriptions.backend.facade.contracts import PromptRejectedError
 from products.subscriptions.backend.models.subscription import AIQueryPlanStatus, Subscription
-from products.subscriptions.backend.temporal.ai_subscription.prompts import (
-    COVERAGE_PROMPT,
-    EVENT_SELECTION_PROMPT,
-    EVENT_SELECTION_PROMPT_NAME,
-    PLAN_COVERAGE_SUFFIX,
-    PLAN_GENERATION_PROMPT,
-    PLAN_REPAIR_SUFFIX,
-    PLANNER_PROMPT_NAME,
-    prepend_hogql_query_writing_rules,
-    render_prompt,
-    resolve_prompt,
-)
 from products.subscriptions.backend.temporal.ai_subscription.schemas import (
     COVERAGE_ITEM_ID_MAX_LENGTH,
     COVERAGE_NEED_MAX_LENGTH,
@@ -68,9 +57,23 @@ from products.subscriptions.backend.temporal.ai_subscription.schemas import (
     RelevantEvents,
 )
 
-from ee.hogai.core.ai_event_truncation import ai_event_truncator
-from ee.hogai.llm import MaxCallbackHandler, MaxChatOpenAI
-from ee.hogai.utils.feature_flags import is_core_memory_disabled, is_privacy_mode_enabled
+if settings.EE_AVAILABLE:
+    from ee.hogai.core.ai_event_truncation import ai_event_truncator
+    from ee.hogai.llm import MaxCallbackHandler, MaxChatOpenAI
+    from ee.hogai.utils.feature_flags import is_core_memory_disabled, is_privacy_mode_enabled
+
+    from products.subscriptions.backend.temporal.ai_subscription.prompts import (
+        COVERAGE_PROMPT,
+        EVENT_SELECTION_PROMPT,
+        EVENT_SELECTION_PROMPT_NAME,
+        PLAN_COVERAGE_SUFFIX,
+        PLAN_GENERATION_PROMPT,
+        PLAN_REPAIR_SUFFIX,
+        PLANNER_PROMPT_NAME,
+        prepend_hogql_query_writing_rules,
+        render_prompt,
+        resolve_prompt,
+    )
 
 logger = structlog.get_logger(__name__)
 
@@ -148,6 +151,8 @@ def _ai_subscription_analytics_client() -> Optional[posthoganalytics.Client]:
     # internal project, so cloud generations must go to the deployment region's project to be billed.
     if not is_cloud():
         return posthoganalytics.default_client
+    if not settings.EE_AVAILABLE:
+        return None
     region = get_instance_region()
     if region is None:
         return None
@@ -179,6 +184,8 @@ def ai_subscription_llm_trace() -> Iterator[None]:
 def ai_subscription_llm_tracing(
     *, team: Team, user: User, stage: str, trace_correlation_id: Optional[Union[int, str]]
 ) -> tuple[dict[str, Union[str, int]], RunnableConfig]:
+    if not settings.EE_AVAILABLE:
+        raise PromptRejectedError("The AI subscription provider is unavailable")
     properties: dict[str, Union[str, int]] = {
         "ai_product": AI_SUBSCRIPTION_AI_PRODUCT,
         "feature": "ai_subscription",
@@ -693,7 +700,7 @@ def _event_property_names(team: Team, events: list[str], per_event_limit: int) -
 
 
 def _load_core_memory_text(team: Team, user: User) -> str:
-    if is_core_memory_disabled(team, user):
+    if not settings.EE_AVAILABLE or is_core_memory_disabled(team, user):
         return ""
     try:
         memory = CoreMemory.objects.filter(team=team).only("text").first()

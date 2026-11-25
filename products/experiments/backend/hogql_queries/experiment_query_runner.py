@@ -41,7 +41,7 @@ from posthog.hogql_queries.utils.query_date_range import QueryDateRange
 from posthog.models.team.extensions import get_or_create_team_extension
 from posthog.models.user import User
 
-from products.ai_observability.backend.facade.api import mentions_evaluation_pass_markers
+from products.ai_observability.backend.facade.evaluation_markers import mentions_evaluation_pass_markers
 from products.analytics_platform.backend.lazy_computation.lazy_computation_executor import LazyComputationResult
 from products.experiments.backend.facade.enums import ExposuresPath, PrecomputeSkipReason
 from products.experiments.backend.facade.warehouse_native_access import WAREHOUSE_NATIVE_QUERY_STATUS_LABEL_PREFIX

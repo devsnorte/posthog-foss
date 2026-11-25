@@ -28,8 +28,6 @@ from products.replay_vision.backend.scanner_access import (
 )
 from products.replay_vision.backend.session_limits import MAX_SESSION_ID_LENGTH
 
-from ee.hogai.utils.untrusted import as_untrusted_data
-
 if TYPE_CHECKING:
     from posthog.models.team.team import Team
 
@@ -173,6 +171,8 @@ def fetch_page_session_observations(
 
     if not lines:
         return None
+
+    from ee.hogai.utils.untrusted import as_untrusted_data
 
     return as_untrusted_data("observations", lines)
 

@@ -28,8 +28,7 @@ from products.tasks.backend.presentation.serializers import (
     TaskRunErrorResponseSerializer,
 )
 from products.tasks.backend.turn_completed import dispatch_turn_completed
-
-from ee.hogai.sandbox import PI_RUNTIME_ERROR_MESSAGE
+from products.tasks.backend.turn_events import PI_RUNTIME_ERROR_MESSAGE
 
 if TYPE_CHECKING:
     from products.tasks.backend.logic.services.connection_token import SandboxEventIngestTokenPayload

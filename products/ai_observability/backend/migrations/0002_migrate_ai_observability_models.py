@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.models.utils
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -13,7 +14,7 @@ class Migration(migrations.Migration):
         ("ai_observability", "0001_adopt_llm_analytics_models"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("posthog", "1205_delete_batch_export_models"),
-        ("ee", "0046_migrate_cdp_models"),
+        access_schema_dependency("0046_migrate_cdp_models"),
     ]
 
     operations = [

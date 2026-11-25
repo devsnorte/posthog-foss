@@ -157,6 +157,13 @@ export const upgradeModalLogic = kea<upgradeModalLogicType>([
                     let featureAvailable: boolean
                     if (!preflight) {
                         featureAvailable = false
+                    } else if (
+                        preflight.foss_multi_project &&
+                        featureKey === AvailableFeature.ORGANIZATIONS_PROJECTS &&
+                        currentUsage !== undefined
+                    ) {
+                        // Project creation supplies a count. Organization creation uses the same feature without one.
+                        featureAvailable = true
                     } else if (!guardOnCloud && preflight.cloud) {
                         featureAvailable = true
                     } else if (!guardOnSelfHosted && !preflight.cloud) {

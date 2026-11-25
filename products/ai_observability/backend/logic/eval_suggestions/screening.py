@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 
 from django.conf import settings
 
+from posthog.llm.privacy import is_privacy_mode_enabled
 from posthog.llm.system_one import (
     Answer,
     ChoiceAnswer,
@@ -23,8 +24,6 @@ from posthog.llm.system_one_client import GATEWAY_MAX_QUESTIONS, SystemOneClient
 from posthog.models.team import Team
 
 from products.ai_observability.backend.logic.consent import consented_team_ids
-
-from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
 
 from . import catalog
 from .config import AI_PRODUCT

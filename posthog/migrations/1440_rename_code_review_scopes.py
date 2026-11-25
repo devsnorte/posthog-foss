@@ -1,5 +1,7 @@
 from django.db import migrations
 
+from posthog.foss_access import access_schema_dependency
+
 # PostHog Review took the `code_review` identifier namespace. This migration only expands: every
 # stored scope and access control row that names an old object gains a copy under the new name,
 # and the old names stay. Pods still on the old code keep finding the old names during the deploy,
@@ -191,7 +193,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("ee", "0070_squash_2026_11_02_schema_addons"),
+        access_schema_dependency("0070_squash_2026_11_02_schema_addons"),
         ("posthog", "1439_drop_retired_recording_relevance_filters"),
     ]
 

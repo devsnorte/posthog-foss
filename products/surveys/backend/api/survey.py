@@ -134,7 +134,8 @@ from products.surveys.backend.summarization import fetch_responses, format_as_ma
 from products.surveys.backend.translation import generate_survey_translation
 from products.surveys.backend.util import get_archived_response_uuids
 
-from ee.surveys.summaries.headline_summary import generate_survey_headline
+if settings.EE_AVAILABLE:
+    from ee.surveys.summaries.headline_summary import generate_survey_headline
 
 # Constants for better maintainability
 logger = structlog.get_logger(__name__)
@@ -3494,6 +3495,9 @@ class SurveyViewSet(ApprovalHandlingMixin, TeamAndOrgViewSetMixin, AccessControl
                 {"error": "AI data processing must be approved to generate summaries"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        if not settings.EE_AVAILABLE:
+            return Response(status=status.HTTP_501_NOT_IMPLEMENTED)
 
         logger.info("[summary_headline] calling generate_survey_headline", survey_id=survey_id)
         result = generate_survey_headline(

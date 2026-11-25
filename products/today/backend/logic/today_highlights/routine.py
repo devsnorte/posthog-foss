@@ -33,7 +33,7 @@ from products.product_analytics.backend.facade.contracts import (
     InsightDashboardContext,
     InsightSeriesNotReady,
 )
-from products.subscriptions.backend.facade.api import insight_short_ids_subscribed_by
+from products.subscriptions.backend.facade.resource_subscriptions import insight_short_ids_subscribed_by
 
 from ...facade import contracts
 from ...facade.enums import HighlightInterval, HighlightMetricReason, HighlightUnit, PulseSlotStatus

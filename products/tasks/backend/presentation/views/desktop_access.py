@@ -58,7 +58,8 @@ from products.tasks.backend.presentation.serializers import (
     TaskRunErrorResponseSerializer,
 )
 
-from ee.billing.quota_limiting import team_quota_snapshot
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import team_quota_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -349,6 +350,8 @@ class DesktopAccessViewSet(TeamAndOrgViewSetMixin, viewsets.GenericViewSet):
     @action(detail=False, methods=["get"], url_path="usage", required_scopes=["llm_gateway:read"])
     def usage(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """The legacy gateway's `/v1/usage/posthog_code` body, from Django's own quota state."""
+        if not settings.EE_AVAILABLE:
+            return _disabled("billing_unavailable", status.HTTP_503_SERVICE_UNAVAILABLE)
         snapshot = team_quota_snapshot(self.team)
         limited = snapshot["limited"]
         bucket = limited.get("posthog_code_credits") or {}

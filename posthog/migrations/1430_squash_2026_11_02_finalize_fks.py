@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.migration_helpers.squash_idempotent
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -12,7 +13,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("dashboards", "0001_squash_2026_11_02_initial"),
-        ("ee", "0001_squash_2026_11_02_initial"),
+        access_schema_dependency("0001_squash_2026_11_02_initial"),
         ("event_definitions", "0001_squash_2026_11_02_initial"),
         ("exports", "0001_squash_2026_11_02_initial"),
         ("notebooks", "0001_squash_2026_11_02_initial"),
