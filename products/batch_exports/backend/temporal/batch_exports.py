@@ -14,6 +14,7 @@ from structlog.contextvars import bind_contextvars
 from temporalio import activity, exceptions, workflow
 from temporalio.common import RetryPolicy
 
+from posthog.cloud_utils import is_foss_self_hosted
 from posthog.kafka_client.routing import async_producer_scope
 from posthog.kafka_client.topics import KAFKA_APP_METRICS2, KAFKA_CDP_INTERNAL_EVENTS
 from posthog.models.team.team import Team
@@ -61,7 +62,8 @@ from products.notifications.backend.facade.api import (
 )
 from products.notifications.backend.facade.enums import NotificationOnlyResourceType
 
-from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, list_limited_team_attributes
+if settings.EE_AVAILABLE:
+    from ee.billing.quota_limiting import QuotaLimitingCaches, QuotaResource, list_limited_team_attributes
 
 LOGGER = get_write_only_logger(__name__)
 EXTERNAL_LOGGER = get_logger("EXTERNAL")
@@ -568,6 +570,8 @@ async def check_is_over_limit(team_id: int) -> bool:
 
     If so, the batch export should not run.
     """
+    if not settings.EE_AVAILABLE:
+        return not is_foss_self_hosted()
     team: Team = await Team.objects.aget(id=team_id)
 
     # The ROWS_EXPORTED resource stores a team attribute for each team that has

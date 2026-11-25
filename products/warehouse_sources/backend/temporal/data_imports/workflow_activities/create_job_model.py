@@ -12,6 +12,7 @@ from django.utils import timezone
 from structlog.contextvars import bind_contextvars
 from temporalio import activity
 
+from posthog.cloud_utils import is_foss_self_hosted
 from posthog.models.team.team import Team
 from posthog.temporal.common.errors import NonReportableError
 from posthog.temporal.common.logger import get_logger
@@ -224,7 +225,8 @@ def _create_job(
         workflow_id=activity.info().workflow_id,
         workflow_run_id=activity.info().workflow_run_id,
         pipeline_version=pipeline_version,
-        billable=billable,
+        # Self-hosted syncs run on the operator's own warehouse infrastructure.
+        billable=billable and not is_foss_self_hosted(),
         schema_snapshot=schema_snapshot,
         destination_ids=destination_ids or [],
     )

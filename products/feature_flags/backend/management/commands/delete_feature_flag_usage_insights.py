@@ -35,7 +35,10 @@ from products.feature_flags.backend.api.feature_flag import (
 )
 from products.feature_flags.backend.models.feature_flag import FeatureFlag
 from products.product_analytics.backend.facade.models import Insight
-from products.subscriptions.backend.facade.api import dashboard_ids_with_subscriptions, insight_ids_with_subscriptions
+from products.subscriptions.backend.facade.resource_subscriptions import (
+    dashboard_ids_with_subscriptions,
+    insight_ids_with_subscriptions,
+)
 
 # Tags each activity-log entry so a sweep's deletions are distinguishable from a user's.
 _JOB_TYPE = "delete_feature_flag_usage_insights"

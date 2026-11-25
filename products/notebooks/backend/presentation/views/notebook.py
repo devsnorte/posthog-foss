@@ -42,7 +42,7 @@ from posthog.api.pagination import offset_page_links
 from posthog.api.routing import TeamAndOrgViewSetMixin
 from posthog.api.shared import UserBasicSerializer
 from posthog.api.sharing_publish_gate import denied_resources_in_notebook_edit, is_publicly_shared
-from posthog.api.streaming import sse_streaming_response
+from posthog.api.streaming import sse_streaming_response, sync_stream
 from posthog.api.utils import action
 from posthog.auth import SessionAuthentication
 from posthog.constants import AvailableFeature
@@ -223,8 +223,6 @@ from products.notebooks.backend.sql_v2_state import (
 from products.notebooks.backend.sql_v2_variables import build_notebook_variables
 from products.tasks.backend.facade.exceptions import SandboxProvisionError
 from products.tasks.backend.facade.sandbox import SandboxStatus
-
-from ee.hogai.utils.aio import async_to_sync
 
 logger = structlog.get_logger(__name__)
 
@@ -2959,13 +2957,11 @@ class NotebookViewSet(TeamAndOrgViewSetMixin, AccessControlViewSetMixin, ForbidD
         last_event_id = request.headers.get("Last-Event-ID")
 
         # On ASGI (Granian in prod) the async generator runs as one cheap task per connection.
-        # On WSGI (tests, fallback) async_to_sync bridges it via a worker thread + queue.
+        # On WSGI (tests, fallback) the response consumes one chunk per iteration.
         return sse_streaming_response(
             collab_stream.stream_collab_sse(team_id, notebook_id, last_event_id=last_event_id)
             if SERVER_GATEWAY_INTERFACE == "ASGI"
-            else async_to_sync(
-                lambda: collab_stream.stream_collab_sse(team_id, notebook_id, last_event_id=last_event_id)
-            ),
+            else sync_stream(collab_stream.stream_collab_sse(team_id, notebook_id, last_event_id=last_event_id)),
             endpoint="notebook_collab",
         )
 

@@ -1017,6 +1017,9 @@ export const billingLogic = kea<billingLogicType>([
             null as BillingType | null,
             {
                 loadBilling: async () => {
+                    if (values.preflight?.ee_available === false) {
+                        return null
+                    }
                     // Note: this is a temporary flag to skip forecasting in the billing page
                     // for customers running into performance issues until we have a more permanent fix
                     // of splitting the billing and forecasting data.

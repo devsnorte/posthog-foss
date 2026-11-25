@@ -4,13 +4,14 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 import posthog.models.utils
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("ee", "0037_add_conversation_approval_decisions"),
+        access_schema_dependency("0037_add_conversation_approval_decisions"),
         ("posthog", "0993_approvalpolicy_bypass_options"),
     ]
 

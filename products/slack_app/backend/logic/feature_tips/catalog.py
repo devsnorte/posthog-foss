@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from functools import cached_property
 
+from django.conf import settings
+
 from posthog.dataclasses import frozen
 from posthog.integrations import IntegrationManager
 from posthog.models.integration import SlackIntegration
@@ -42,7 +44,6 @@ from products.slack_app.backend.services.slack_settings import (
     set_untagged_question_mode,
 )
 from products.slack_app.backend.services.workspace_integrations import WorkspaceIntegration, workspace_integrations
-from products.subscriptions.backend.facade.api import user_has_slack_subscription
 
 
 @frozen(slots=False)
@@ -176,11 +177,13 @@ class SubscriptionTip(TipFeature):
     )
 
     def is_eligible(self, ctx: TipContext) -> bool:
-        return ctx.posthog_user_id is not None
+        return settings.EE_AVAILABLE and ctx.posthog_user_id is not None
 
     def was_used(self, ctx: TipContext) -> bool:
-        if ctx.posthog_user_id is None:
+        if not settings.EE_AVAILABLE or ctx.posthog_user_id is None:
             return False
+        from products.subscriptions.backend.facade.resource_subscriptions import user_has_slack_subscription
+
         return user_has_slack_subscription(team_id=ctx.team_id, user_id=ctx.posthog_user_id)
 
 

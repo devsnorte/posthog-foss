@@ -42,6 +42,10 @@ def is_hobby() -> bool:
     return _run_mode().is_hobby
 
 
+def is_foss_self_hosted() -> bool:
+    return not settings.EE_AVAILABLE and not is_cloud()
+
+
 def is_ci() -> bool:
     return os.environ.get("GITHUB_ACTIONS") is not None
 

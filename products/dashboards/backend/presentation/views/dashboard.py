@@ -73,7 +73,7 @@ from posthog.api.sharing_publish_gate import (
     dashboard_shared_or_subscribed,
     is_publicly_shared,
 )
-from posthog.api.streaming import sse_streaming_response
+from posthog.api.streaming import sse_streaming_response, sync_stream
 from posthog.api.tagged_item import TaggedItemSerializerMixin, TaggedItemViewSetMixin
 from posthog.api.utils import action
 from posthog.caching.insight_result import InsightResult
@@ -257,9 +257,7 @@ from products.product_analytics.backend.presentation.insight import (
     memoize_last_call,
     viewable_insight_or_404,
 )
-from products.subscriptions.backend.facade.api import dashboard_ids_with_subscriptions
-
-from ee.hogai.utils.aio import async_to_sync
+from products.subscriptions.backend.facade.resource_subscriptions import dashboard_ids_with_subscriptions
 
 if TYPE_CHECKING:
     from drf_spectacular.openapi import AutoSchema
@@ -3734,7 +3732,7 @@ class DashboardsViewSet(
         return sse_streaming_response(
             async_tile_stream_generator()
             if settings.SERVER_GATEWAY_INTERFACE == "ASGI"
-            else async_to_sync(lambda: async_tile_stream_generator()),
+            else sync_stream(async_tile_stream_generator()),
             endpoint="dashboard_tile_stream",
         )
 

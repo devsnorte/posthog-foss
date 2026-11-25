@@ -11,8 +11,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from posthog.test.playwright_setup_functions import PLAYWRIGHT_SETUP_FUNCTIONS
-
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -27,6 +25,10 @@ def setup_test(request: Request, test_name: str) -> Response:
 
     if not any(test_modes):
         raise Http404()
+
+    from posthog.test.playwright_setup_functions import (
+        PLAYWRIGHT_SETUP_FUNCTIONS,  # noqa: PLC0415 -- only load fixtures in test modes
+    )
 
     if test_name not in PLAYWRIGHT_SETUP_FUNCTIONS:
         available_tests = {name: config.description for name, config in PLAYWRIGHT_SETUP_FUNCTIONS.items()}

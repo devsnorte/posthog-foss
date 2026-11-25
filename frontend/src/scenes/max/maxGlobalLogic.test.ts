@@ -2,6 +2,7 @@ import { router } from 'kea-router'
 import { expectLogic } from 'kea-test-utils'
 
 import api from 'lib/api'
+import { preflightLogic } from 'lib/logic/preflightLogic'
 
 import { aiConsentLogic } from '~/layout/ai/aiConsentLogic'
 import { SIDE_PANEL_PANEL_ID } from '~/layout/ai/aiPanelIds'
@@ -57,6 +58,19 @@ describe('maxGlobalLogic', () => {
     it('mounts without mounting the task list', () => {
         expect(logic.isMounted()).toBe(true)
         expect(tasksLogic.findMounted()).toBeNull()
+    })
+
+    it('skips conversation history requests when the backend has no enterprise routes', async () => {
+        await expectLogic(logic).toDispatchActions(['loadConversationHistorySuccess'])
+        const list = jest.spyOn(api.conversations, 'list')
+        preflightLogic.actions.loadPreflightSuccess({ ...preflightLogic.values.preflight!, ee_available: false })
+
+        await expectLogic(logic, () => logic.actions.loadConversationHistory()).toDispatchActions([
+            'loadConversationHistorySuccess',
+        ])
+
+        expect(list).not.toHaveBeenCalled()
+        expect(logic.values.conversationHistory).toEqual([])
     })
 
     // Opening a conversation in the side panel must surface it in the side panel chat without

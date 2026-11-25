@@ -21,6 +21,7 @@ from google.genai import types
 from pydantic import BaseModel, Field
 
 from posthog.dataclasses import frozen
+from posthog.llm.untrusted import neutralize_markup
 from posthog.models.utils import uuid7
 
 from products.replay_vision.backend.consent import is_ai_data_processing_approved
@@ -43,8 +44,6 @@ from products.replay_vision.backend.semantic_space import (
     unpack,
 )
 from products.replay_vision.backend.watch_rank import ISSUE_CATEGORIES
-
-from ee.hogai.utils.untrusted import neutralize_markup
 
 logger = structlog.get_logger(__name__)
 

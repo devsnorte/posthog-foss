@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import posthog.models.utils
+from posthog.foss_access import access_schema_dependency
 
 import products.posthog_ai.backend.models.assistant
 
@@ -14,7 +15,7 @@ class Migration(migrations.Migration):
         ("posthog", "1207_migrate_ai_observability_models"),
         ("posthog_ai", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("ee", "0047_migrate_ai_observability_models"),
+        access_schema_dependency("0047_migrate_ai_observability_models"),
     ]
 
     operations = [

@@ -81,7 +81,7 @@ from posthog.api.team.viewsets import (
 from posthog.api.utils import validate_authorized_url_wildcards
 from posthog.auth import SessionAuthentication
 from posthog.caching.organization_serializer_cache import _bump_org_serializer_cache_version
-from posthog.cloud_utils import get_cached_instance_license, is_cloud
+from posthog.cloud_utils import get_cached_instance_license, is_cloud, is_foss_self_hosted
 from posthog.constants import AvailableFeature
 from posthog.decorators import disallow_if_impersonated
 from posthog.event_usage import report_user_action
@@ -1725,8 +1725,6 @@ class ProjectViewSet(
         return self.get_object().passthrough_team
 
     def perform_destroy(self, project: Project):
-        from ee.billing.billing_manager import BillingManager
-
         # Check if bulk deletion operations are disabled via environment variable
         # Projects contain teams, so we need to block project deletion too
         if settings.DISABLE_BULK_DELETES:
@@ -1742,13 +1740,13 @@ class ProjectViewSet(
         is_last_project = project.organization.projects.count() == 1
         license = get_cached_instance_license()
         try:
-            has_active_subscription = (
-                is_last_project
-                and settings.EE_AVAILABLE
-                and is_cloud()
-                and license
-                and BillingManager(license).get_billing(project.organization).get("has_active_subscription")
-            )
+            has_active_subscription = False
+            if is_last_project and settings.EE_AVAILABLE and is_cloud() and license:
+                from ee.billing.billing_manager import BillingManager
+
+                has_active_subscription = (
+                    BillingManager(license).get_billing(project.organization).get("has_active_subscription")
+                )
         except Exception:
             logger.exception("Failed to check billing status before project deletion; allowing deletion to proceed")
             has_active_subscription = False
@@ -2389,31 +2387,21 @@ class PremiumMultiProjectPermission(BasePermission):
         except ValueError:
             return False
 
-        if request.data.get("is_demo"):
-            # If we're requesting to make a demo project but the org already has a demo project
-            if organization.teams.filter(is_demo=True).exists():
-                return False
+        is_demo = request.data.get("is_demo")
+        if is_demo and organization.teams.filter(is_demo=True).exists():
+            return False
+
+        if not is_demo and is_foss_self_hosted():
+            allowed_project_count = None
+        else:
+            projects_feature = organization.get_available_feature(AvailableFeature.ORGANIZATIONS_PROJECTS)
+            allowed_project_count = projects_feature.get("limit") if projects_feature else 1
 
         current_non_demo_project_count = organization.teams.exclude(is_demo=True).distinct("project_id").count()
-        projects_feature = organization.get_available_feature(AvailableFeature.ORGANIZATIONS_PROJECTS)
+        if allowed_project_count is not None:
+            return current_non_demo_project_count < allowed_project_count
 
-        if projects_feature:
-            allowed_project_count = projects_feature.get("limit")
-            # If allowed_project_count is None then the user is allowed unlimited projects
-            if allowed_project_count is None:
-                # We have a hard limit of MAX_ALLOWED_PROJECTS_PER_ORG projects per organization
-                # We don't want to block updates if a customer is already over the max allowed
-                if current_non_demo_project_count >= MAX_ALLOWED_PROJECTS_PER_ORG and view.action == "create":
-                    self.message = f"You have reached the maximum limit of {MAX_ALLOWED_PROJECTS_PER_ORG} projects per organization. Contact support if you'd like access to more projects."
-                    return False
-                return True
-            # Check current limit against allowed limit
-            if current_non_demo_project_count >= allowed_project_count:
-                return False
-        else:
-            # If the org doesn't have the feature, they can only have one non-demo project
-            if current_non_demo_project_count >= 1:
-                return False
-
-        # in any other case, we're good to go
+        if view.action == "create" and current_non_demo_project_count >= MAX_ALLOWED_PROJECTS_PER_ORG:
+            self.message = f"You have reached the maximum limit of {MAX_ALLOWED_PROJECTS_PER_ORG} projects per organization. Contact support if you'd like access to more projects."
+            return False
         return True

@@ -21,6 +21,7 @@ import posthoganalytics
 from posthog.dataclasses import frozen
 from posthog.event_usage import groups
 from posthog.helpers.trigram_search import MAX_SEARCH_LENGTH, normalize_search_term
+from posthog.llm.privacy import is_privacy_mode_enabled
 from posthog.llm.system_one import JsonValue, NoulAnswer, NoulQuestion
 from posthog.llm.system_one_client import build_system_one_client
 from posthog.models.scoping import team_scope
@@ -28,8 +29,6 @@ from posthog.models.user import User
 
 from products.tasks.backend.facade.api import is_current_task_run_actor
 from products.tasks.backend.models import Task, TaskRun
-
-from ee.hogai.utils.feature_flags import is_privacy_mode_enabled
 
 if TYPE_CHECKING:
     from posthog.llm.system_one_client import SystemOneClient

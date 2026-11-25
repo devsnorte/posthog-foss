@@ -4,11 +4,13 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
+from posthog.foss_access import access_schema_dependency
+
 
 class Migration(migrations.Migration):
     dependencies = [
         ("cohorts", "0014_alter_cohort_created_by_alter_cohort_people_and_more"),
-        ("ee", "0063_scim_provisioned_user_config_set_null"),
+        access_schema_dependency("0063_scim_provisioned_user_config_set_null"),
         ("error_tracking", "0033_squash_2026_09_07_schema_addons"),
         ("posthog", "1350_alter_userscenepersonalisation_dashboard"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

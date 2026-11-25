@@ -102,6 +102,19 @@ describe('billingLogic', () => {
         initKeaTests()
     })
 
+    it('skips billing requests when the backend has no enterprise routes', async () => {
+        billingLogic.mount()
+        await expectLogic(billingLogic, () => billingLogic.actions.loadBilling()).toFinishAllListeners()
+        const billing = jest.fn(() => [200, billingState])
+        useMocks({ get: { '/api/billing': billing } })
+        preflightLogic.actions.loadPreflightSuccess({ ...preflightLogic.values.preflight!, ee_available: false })
+
+        await expectLogic(billingLogic, () => billingLogic.actions.loadBilling()).toFinishAllListeners()
+
+        expect(billing).not.toHaveBeenCalled()
+        expect(billingLogic.values.billing).toBeNull()
+    })
+
     it.each([
         { case: 'an empty body', answer: [200, null] as [number, unknown] },
         { case: 'a server error', answer: [500, { detail: 'A server error occurred.' }] as [number, unknown] },

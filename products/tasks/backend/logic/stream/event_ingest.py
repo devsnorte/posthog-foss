@@ -47,8 +47,7 @@ from products.tasks.backend.metrics import observe_sandbox_process_killed, obser
 from products.tasks.backend.models import TaskRun
 from products.tasks.backend.redis import run_uses_dedicated_stream
 from products.tasks.backend.turn_completed import dispatch_turn_completed
-
-from ee.hogai.sandbox import (
+from products.tasks.backend.turn_events import (
     PI_RUNTIME_ERROR_MESSAGE,
     is_idle_resume_turn_complete,
     is_turn_complete,

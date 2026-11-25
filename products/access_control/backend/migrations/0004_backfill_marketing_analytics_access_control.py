@@ -1,5 +1,7 @@
 from django.db import migrations
 
+from posthog.foss_access import access_schema_dependency
+
 CHUNK_SIZE = 200
 
 
@@ -38,7 +40,7 @@ def reverse_func(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("access_control", "0003_teamaccesscontrolconfig"),
-        ("ee", "0067_remove_scimrequestlog_identity_provider_config_and_more"),
+        access_schema_dependency("0067_remove_scimrequestlog_identity_provider_config_and_more"),
     ]
 
     operations = [

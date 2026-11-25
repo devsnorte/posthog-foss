@@ -3,6 +3,7 @@
 from django.db import migrations
 
 import posthog.migration_helpers.not_valid_foreign_key
+from posthog.foss_access import access_schema_dependency
 
 
 class Migration(migrations.Migration):
@@ -40,7 +41,7 @@ class Migration(migrations.Migration):
         ("data_tools", "0001_squash_2026_11_02_initial"),
         ("data_warehouse", "0001_squash_2026_11_02_initial"),
         ("early_access_features", "0001_squash_2026_11_02_initial"),
-        ("ee", "0069_squash_2026_11_02_finalize_fks"),
+        access_schema_dependency("0069_squash_2026_11_02_finalize_fks"),
         ("endpoints", "0001_squash_2026_11_02_initial"),
         ("error_tracking", "0001_squash_2026_11_02_initial"),
         ("event_definitions", "0001_squash_2026_11_02_initial"),

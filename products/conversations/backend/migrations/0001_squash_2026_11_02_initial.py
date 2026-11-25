@@ -12,6 +12,7 @@ from django.db import migrations, models
 import posthog.utils
 import posthog.uuidt
 import posthog.helpers.encrypted_fields
+from posthog.foss_access import access_schema_dependency
 
 import products.conversations.backend.models.delivery
 import products.conversations.backend.models.email_thread
@@ -42,7 +43,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("ee", "0066_remove_dashboardprivilege"),
+        access_schema_dependency("0066_remove_dashboardprivilege"),
         ("posthog", "1406_file_system_team_text_trgm_index"),
     ]
 

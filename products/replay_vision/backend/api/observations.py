@@ -115,8 +115,6 @@ from products.signals.backend.facade.api import get_reports_for_signal_source_sl
 from products.tasks.backend.facade import api as tasks_facade
 from products.tasks.backend.facade.profiles import get_task_profile
 
-from ee.hogai.utils.untrusted import as_untrusted_data
-
 logger = structlog.get_logger(__name__)
 
 
@@ -1057,6 +1055,8 @@ def _observation_task_content(observation: ReplayObservation, scanner: ReplaySca
     # The description becomes a coding agent's prompt when the task is later run, and the finding is
     # model output derived from recorded sessions. Fence it as untrusted data so agent-directed
     # instructions planted in a recording can't steer the agent (indirect prompt injection).
+    from ee.hogai.utils.untrusted import as_untrusted_data
+
     fenced_finding = as_untrusted_data("scanner_finding", finding.splitlines())
     description = (
         f"Finding from the Replay Vision scanner '{scanner_name}' on session {observation.session_id}.\n\n"

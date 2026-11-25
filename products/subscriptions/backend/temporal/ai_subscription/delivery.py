@@ -2,9 +2,10 @@ import re
 import uuid
 import dataclasses
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.db.models import Q
 
 import structlog
@@ -51,8 +52,16 @@ from products.subscriptions.backend.models.subscription import (
     SubscriptionDelivery,
     get_unsubscribe_token,
 )
-from products.subscriptions.backend.temporal.ai_subscription.report_pipeline import AiReportResult, generate_ai_report
-from products.subscriptions.backend.temporal.ai_subscription.spec_generator import ReportWindow, compute_report_window
+
+if TYPE_CHECKING or settings.EE_AVAILABLE:
+    from products.subscriptions.backend.temporal.ai_subscription.report_pipeline import (
+        AiReportResult,
+        generate_ai_report,
+    )
+    from products.subscriptions.backend.temporal.ai_subscription.spec_generator import (
+        ReportWindow,
+        compute_report_window,
+    )
 from products.subscriptions.backend.temporal.types import AI_REPORT_WINDOW_END_KEY
 
 logger = structlog.get_logger(__name__)
@@ -394,6 +403,8 @@ def _last_scheduled_report_cutoff(subscription: Subscription) -> datetime | None
 def _resolve_subscription_context(
     subscription: Subscription,
 ) -> tuple[Team, User | None, ReportWindow, dict | None]:
+    if not settings.EE_AVAILABLE:
+        raise RuntimeError("The AI subscription provider is unavailable")
     # team/created_by are FK relations and the last-delivery lookup hits the DB; resolving the window
     # here keeps all ORM access (and the timezone math) off the event loop in one sync hop. The frozen
     # plan (if any) is read here too so the generation path stays free of ORM access.

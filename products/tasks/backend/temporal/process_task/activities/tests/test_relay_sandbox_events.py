@@ -53,8 +53,7 @@ from products.tasks.backend.temporal.process_task.workflow import (
     RELAY_SANDBOX_EVENTS_START_TO_CLOSE_TIMEOUT,
     ProcessTaskWorkflow,
 )
-
-from ee.hogai.sandbox import (
+from products.tasks.backend.turn_events import (
     BACKGROUND_TURN_COMPLETE_METHOD,
     PI_RUNTIME_ERROR_MESSAGE,
     TURN_COMPLETE_METHOD,

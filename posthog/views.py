@@ -23,7 +23,7 @@ from prometheus_client import REGISTRY, CollectorRegistry, generate_latest, mult
 
 from posthog.auth import AUTH_BRAND_COOKIE, apply_auth_brand_cookie, normalize_auth_brand
 from posthog.cache_utils import cache_for
-from posthog.cloud_utils import is_cloud, is_hobby
+from posthog.cloud_utils import is_cloud, is_foss_self_hosted, is_hobby
 from posthog.credentials_service.callers import CredentialsCaller
 from posthog.credentials_service.errors import CredentialsServiceFailure
 from posthog.credentials_service.settings_fallback import get_many_or_settings
@@ -224,6 +224,7 @@ def preflight_check(request: HttpRequest) -> JsonResponse:
 
     response = {
         "django": True,
+        "ee_available": settings.EE_AVAILABLE,
         "redis": in_cloud or _traced("preflight.is_redis_alive", is_redis_alive) or settings.TEST,
         "plugins": in_cloud or _traced("preflight.is_plugin_server_alive", is_plugin_server_alive) or settings.TEST,
         "celery": in_cloud or _traced("preflight.is_celery_alive", is_celery_alive) or settings.TEST,
@@ -258,6 +259,9 @@ def preflight_check(request: HttpRequest) -> JsonResponse:
     auth_brand = normalize_auth_brand(request.COOKIES.get(AUTH_BRAND_COOKIE))
     if auth_brand:
         response["auth_brand"] = auth_brand
+
+    if is_foss_self_hosted():
+        response["foss_multi_project"] = True
 
     if settings.DEBUG or settings.E2E_TESTING:
         response["is_debug"] = True

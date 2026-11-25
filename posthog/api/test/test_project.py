@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 from django.db import DatabaseError
+from django.test import override_settings
 from django.utils import timezone
 
 from parameterized import parameterized
@@ -313,14 +314,46 @@ class TestProjectAPI(team_api_test_factory()):  # type: ignore
             "You have reached the maximum limit of allowed projects for your current plan. Upgrade your plan to be able to create and manage more projects.",
         )
 
-    def test_project_creation_without_feature(self):
+    @parameterized.expand(
+        [
+            (OrganizationMembership.Level.OWNER, status.HTTP_201_CREATED),
+            (OrganizationMembership.Level.ADMIN, status.HTTP_201_CREATED),
+            (OrganizationMembership.Level.MEMBER, status.HTTP_403_FORBIDDEN),
+        ]
+    )
+    def test_foss_additional_project(self, level: OrganizationMembership.Level, expected_status: int) -> None:
+        self.organization_membership.level = level
+        self.organization_membership.save()
+        self.organization.available_product_features = []
+        self.organization.save()
+        with self.settings(CLOUD_DEPLOYMENT=None, EE_AVAILABLE=False):
+            response = self.client.post(f"/api/organizations/{self.organization.id}/projects/", {"name": "App Two"})
+
+        self.assertEqual(response.status_code, expected_status, response.content)
+        if expected_status == status.HTTP_201_CREATED:
+            second = Project.objects.get(pk=response.json()["id"]).passthrough_team
+            self.assertNotEqual(second.project_id, self.team.project_id)
+            self.assertNotEqual(second.api_token, self.team.api_token)
+
+    @override_settings(CLOUD_DEPLOYMENT=None, EE_AVAILABLE=False)
+    @patch("posthog.api.project.MAX_ALLOWED_PROJECTS_PER_ORG", 1)
+    def test_foss_project_creation_respects_instance_limit(self):
+        self.organization_membership.level = OrganizationMembership.Level.ADMIN
+        self.organization_membership.save()
+        response = self.client.post(f"/api/organizations/{self.organization.id}/projects/", {"name": "App Two"})
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("maximum limit of 1 projects", response.json()["detail"])
+
+    def test_cloud_project_creation_without_feature(self):
         # Organization without the ORGANIZATIONS_PROJECTS feature (has 1 project already)
         self.organization.available_product_features = []
         self.organization.save()
         self.organization_membership.level = OrganizationMembership.Level.ADMIN
         self.organization_membership.save()
 
-        response = self.client.post("/api/projects/", {"name": "New Project"})
+        with self.is_cloud(True):
+            response = self.client.post("/api/projects/", {"name": "New Project"})
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(
@@ -328,6 +361,7 @@ class TestProjectAPI(team_api_test_factory()):  # type: ignore
             "You have reached the maximum limit of allowed projects for your current plan. Upgrade your plan to be able to create and manage more projects.",
         )
 
+    @override_settings(EE_AVAILABLE=True)
     def test_project_creation_with_limited_feature(self):
         # Set project limit to 2
         self.organization.available_product_features = [
@@ -630,6 +664,7 @@ class TestProjectAPI(team_api_test_factory()):  # type: ignore
         mock_create_notification.assert_not_called()
 
     @patch("posthog.models.organization.Organization.teams")
+    @override_settings(EE_AVAILABLE=True)
     def test_hard_limit_projects(self, mock_teams):
         # Set unlimited projects
         self.organization.available_product_features = [
@@ -658,6 +693,7 @@ class TestProjectAPI(team_api_test_factory()):  # type: ignore
         )
 
     @patch("posthog.tasks.demo_create_data.create_data_for_demo_team.delay")
+    @override_settings(EE_AVAILABLE=True)
     def test_demo_projects_not_counted_toward_limit(self, _mock_create_demo_data: MagicMock):
         # Set project limit to 2
         self.organization.available_product_features = [
